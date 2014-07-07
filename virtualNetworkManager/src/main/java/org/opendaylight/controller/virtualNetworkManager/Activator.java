@@ -11,10 +11,11 @@ package org.opendaylight.controller.virtualNetworkManager;
 
 import java.util.Hashtable;
 import java.util.Dictionary;
+
 import org.apache.felix.dm.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.opendaylight.controller.protocol_plugin.openflow13.core.IController;
 import org.opendaylight.controller.sal.core.ComponentActivatorAbstractBase;
 import org.opendaylight.controller.sal.packet.IListenDataPacket;
 import org.opendaylight.controller.sal.packet.IDataPacketService;
@@ -54,7 +55,7 @@ public class Activator extends ComponentActivatorAbstractBase {
      * Object
      */
     public Object[] getImplementations() {
-        Object[] res = { VirtualNetworkManager.class };
+        Object[] res = { VirtualNetworkManager.class, SwitchStateManager.class };
         return res;
     }
 
@@ -74,10 +75,12 @@ public class Activator extends ComponentActivatorAbstractBase {
     public void configureInstance(Component c, Object imp, String containerName) {
         if (imp.equals(VirtualNetworkManager.class)) {
             // export the services
-            Dictionary<String, String> props = new Hashtable<String, String>();
-            props.put("salListenerName", "virtualNetworkManager");
-            c.setInterface(new String[] { IListenDataPacket.class.getName() }, props);
-
+            Dictionary<String, String> props1 = new Hashtable<String, String>();
+            props1.put("salListenerName", "virtualNetworkManagerPacketListner");
+            Dictionary<String, String> props2 = new Hashtable<String, String>();
+            props2.put("salListenerName", "virtualNetworkManagerOFController");
+            c.setInterface(new String[] { IListenDataPacket.class.getName() }, props1);
+            c.setInterface(new String[] { IController.class.getName() }, props2);
             // register dependent modules
             c.add(createContainerServiceDependency(containerName).setService(
                     ISwitchManager.class).setCallbacks("setSwitchManager",

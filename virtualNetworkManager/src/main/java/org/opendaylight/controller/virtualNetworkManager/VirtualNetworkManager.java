@@ -19,20 +19,20 @@ package org.opendaylight.controller.virtualNetworkManager;
 
 import java.util.List;
 import java.util.ArrayList;
-
 import java.util.Set;
 import java.lang.String;
 import java.util.Map;
 import java.util.HashMap;
-
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.FrameworkUtil;
+import org.opendaylight.controller.protocol_plugin.openflow13.core.IController;
+import org.opendaylight.controller.protocol_plugin.openflow13.core.IMessageListener;
+import org.opendaylight.controller.protocol_plugin.openflow13.core.ISwitch;
+import org.opendaylight.controller.protocol_plugin.openflow13.core.ISwitchStateListener;
 import org.opendaylight.controller.sal.core.ConstructionException;
 import org.opendaylight.controller.sal.core.Node;
 import org.opendaylight.controller.sal.core.NodeConnector;
@@ -52,15 +52,17 @@ import org.opendaylight.controller.sal.match.MatchType;
 import org.opendaylight.controller.sal.match.MatchField;
 import org.opendaylight.controller.sal.utils.Status;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
+import org.openflow.protocol.OFType;
 
-public class VirtualNetworkManager implements IListenDataPacket {
+public class VirtualNetworkManager implements IListenDataPacket, IController{
 	
     private static final Logger logger = LoggerFactory
             .getLogger(VirtualNetworkManager.class);
     private ISwitchManager switchManager = null;
-    private IFlowProgrammerService programmer = null;
+    private IFlowProgrammerService flowProgrammer = null;
     private IDataPacketService dataPacketService = null;
     private Map<Long, NodeConnector> mac_to_port = new HashMap<Long, NodeConnector>();
+    private ISwitchStateListener switchStateListner = null;
     private String function = "switch";
 
     void setDataPacketService(IDataPacketService s) {
@@ -75,12 +77,12 @@ public class VirtualNetworkManager implements IListenDataPacket {
 
     public void setFlowProgrammerService(IFlowProgrammerService s)
     {
-        this.programmer = s;
+        this.flowProgrammer = s;
     }
 
     public void unsetFlowProgrammerService(IFlowProgrammerService s) {
-        if (this.programmer == s) {
-            this.programmer = null;
+        if (this.flowProgrammer == s) {
+            this.flowProgrammer = null;
         }
     }
 
@@ -133,7 +135,22 @@ public class VirtualNetworkManager implements IListenDataPacket {
      *
      */
     void start() {
-        logger.info("Started");
+    	SwitchStateManager switchStateManager = null;
+    	OFEventManager ofEventManager = null;
+    
+        logger.info("Initializing Switch State Manager");
+        switchStateManager = new SwitchStateManager();
+        switchStateManager.setDataPacketService(dataPacketService);
+        switchStateManager.setFlowProgrammerService(flowProgrammer);
+        switchStateManager.setSwitchManager(switchManager);
+        addSwitchStateListener(switchStateManager);
+        
+        logger.info("Initializing OF Event Manager ");
+        ofEventManager = new OFEventManager();
+        ofEventManager.setDataPacketService(dataPacketService);
+        ofEventManager.setFlowProgrammerService(flowProgrammer);
+        ofEventManager.setSwitchManager(switchManager);
+        ofEventManager.registerHandler(this);
     }
 
     /**
@@ -239,7 +256,7 @@ public class VirtualNetworkManager implements IListenDataPacket {
 
         // Modify the flow on the network node
         Node incoming_node = incoming_connector.getNode();
-        Status status = programmer.addFlow(incoming_node, f);
+        Status status = flowProgrammer.addFlow(incoming_node, f);
 
         if (!status.isSuccess()) {
             logger.warn("SDN Plugin failed to program the flow: {}. The failure is: {}",
@@ -249,4 +266,40 @@ public class VirtualNetworkManager implements IListenDataPacket {
             return true;
         }
     }
+
+	@Override
+	public void addMessageListener(OFType arg0, IMessageListener arg1) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void addSwitchStateListener(ISwitchStateListener arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public ISwitch getSwitch(Long arg0) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Map<Long, ISwitch> getSwitches() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void removeMessageListener(OFType arg0, IMessageListener arg1) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void removeSwitchStateListener(ISwitchStateListener arg0) {
+		// TODO Auto-generated method stub
+		
+	}
 }
