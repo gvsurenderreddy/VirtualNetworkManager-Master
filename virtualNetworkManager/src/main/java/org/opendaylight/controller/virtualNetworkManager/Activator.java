@@ -75,7 +75,7 @@ public class Activator extends ComponentActivatorAbstractBase {
         if (imp.equals(VirtualNetworkManager.class)) {
             // export the services
             Dictionary<String, String> props = new Hashtable<String, String>();
-            props.put("salListenerName", "tutorial_L2_forwarding");
+            props.put("salListenerName", "virtualNetworkManager");
             c.setInterface(new String[] { IListenDataPacket.class.getName() }, props);
 
             // register dependent modules
