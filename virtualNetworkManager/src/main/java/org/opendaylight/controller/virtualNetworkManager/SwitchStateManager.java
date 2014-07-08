@@ -1,7 +1,7 @@
 package org.opendaylight.controller.virtualNetworkManager;
 
-import org.opendaylight.controller.protocol_plugin.openflow13.core.ISwitch;
-import org.opendaylight.controller.protocol_plugin.openflow13.core.ISwitchStateListener;
+import org.opendaylight.controller.protocol_plugin.openflow.core.ISwitch;
+import org.opendaylight.controller.protocol_plugin.openflow.core.ISwitchStateListener;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
 import org.opendaylight.controller.sal.packet.IDataPacketService;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 public class SwitchStateManager implements ISwitchStateListener {
 
 	private static final Logger logger = LoggerFactory
-            .getLogger(VirtualNetworkManager.class);
+            .getLogger(SwitchStateManager.class);
 	private IFlowProgrammerService programmer = null;
 	private IDataPacketService dataPacketService = null;
 	private ISwitchManager switchManager = null;

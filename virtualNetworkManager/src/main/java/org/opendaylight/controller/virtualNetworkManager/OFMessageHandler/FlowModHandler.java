@@ -1,7 +1,7 @@
 package org.opendaylight.controller.virtualNetworkManager.OFMessageHandler;
 
-import org.opendaylight.controller.protocol_plugin.openflow13.core.IMessageListener;
-import org.opendaylight.controller.protocol_plugin.openflow13.core.ISwitch;
+import org.opendaylight.controller.protocol_plugin.openflow.core.IMessageListener;
+import org.opendaylight.controller.protocol_plugin.openflow.core.ISwitch;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
 import org.opendaylight.controller.sal.packet.IDataPacketService;
 import org.opendaylight.controller.switchmanager.ISwitchManager;

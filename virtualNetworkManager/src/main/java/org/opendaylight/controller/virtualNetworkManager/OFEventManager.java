@@ -1,11 +1,8 @@
 package org.opendaylight.controller.virtualNetworkManager;
 
-import org.opendaylight.controller.protocol_plugin.openflow13.core.IMessageListener;
-import org.opendaylight.controller.protocol_plugin.openflow13.core.ISwitch;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
 import org.opendaylight.controller.sal.packet.IDataPacketService;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
-import org.openflow.protocol.OFMessage;
 
 public class OFEventManager{
 
@@ -21,7 +18,7 @@ public class OFEventManager{
         this.dataPacketService = s;
     }
 
-	public void setSwitchManager(ISwitchManager switchManager2) {
+	public void setSwitchManager(ISwitchManager switchManager) {
 		// TODO Auto-generated method stub
 		
 	}

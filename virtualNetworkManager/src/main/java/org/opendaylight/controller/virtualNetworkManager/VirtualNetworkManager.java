@@ -29,10 +29,8 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.FrameworkUtil;
-import org.opendaylight.controller.protocol_plugin.openflow13.core.IController;
-import org.opendaylight.controller.protocol_plugin.openflow13.core.IMessageListener;
-import org.opendaylight.controller.protocol_plugin.openflow13.core.ISwitch;
-import org.opendaylight.controller.protocol_plugin.openflow13.core.ISwitchStateListener;
+import org.opendaylight.controller.protocol_plugin.openflow.core.IController;
+import org.opendaylight.controller.protocol_plugin.openflow.core.ISwitchStateListener;
 import org.opendaylight.controller.sal.core.ConstructionException;
 import org.opendaylight.controller.sal.core.Node;
 import org.opendaylight.controller.sal.core.NodeConnector;
@@ -54,7 +52,7 @@ import org.opendaylight.controller.sal.utils.Status;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
 import org.openflow.protocol.OFType;
 
-public class VirtualNetworkManager implements IListenDataPacket, IController{
+public class VirtualNetworkManager implements IListenDataPacket{
 	
     private static final Logger logger = LoggerFactory
             .getLogger(VirtualNetworkManager.class);
@@ -63,6 +61,7 @@ public class VirtualNetworkManager implements IListenDataPacket, IController{
     private IDataPacketService dataPacketService = null;
     private Map<Long, NodeConnector> mac_to_port = new HashMap<Long, NodeConnector>();
     private ISwitchStateListener switchStateListner = null;
+    private IController controller = null;
     private String function = "switch";
 
     void setDataPacketService(IDataPacketService s) {
@@ -98,6 +97,18 @@ public class VirtualNetworkManager implements IListenDataPacket, IController{
         }
     }
 
+    void setControllerService(IController s) {
+    	logger.debug("Controller set");
+    	this.controller = s;
+    }
+    
+    void unsetControllerService(IController s){
+    	if (this.controller == s) {
+            logger.debug("Controller removed!");
+            this.controller = null;
+        }
+    }
+    
     /**
      * Function called by the dependency manager when all the required
      * dependencies are satisfied
@@ -143,14 +154,15 @@ public class VirtualNetworkManager implements IListenDataPacket, IController{
         switchStateManager.setDataPacketService(dataPacketService);
         switchStateManager.setFlowProgrammerService(flowProgrammer);
         switchStateManager.setSwitchManager(switchManager);
-        addSwitchStateListener(switchStateManager);
-        
+        controller.addSwitchStateListener(switchStateManager);
+    /*    
         logger.info("Initializing OF Event Manager ");
         ofEventManager = new OFEventManager();
         ofEventManager.setDataPacketService(dataPacketService);
         ofEventManager.setFlowProgrammerService(flowProgrammer);
         ofEventManager.setSwitchManager(switchManager);
         ofEventManager.registerHandler(this);
+        */
     }
 
     /**
@@ -266,40 +278,4 @@ public class VirtualNetworkManager implements IListenDataPacket, IController{
             return true;
         }
     }
-
-	@Override
-	public void addMessageListener(OFType arg0, IMessageListener arg1) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void addSwitchStateListener(ISwitchStateListener arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public ISwitch getSwitch(Long arg0) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Map<Long, ISwitch> getSwitches() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void removeMessageListener(OFType arg0, IMessageListener arg1) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void removeSwitchStateListener(ISwitchStateListener arg0) {
-		// TODO Auto-generated method stub
-		
-	}
 }

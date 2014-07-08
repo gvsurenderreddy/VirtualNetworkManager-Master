@@ -15,7 +15,7 @@ import java.util.Dictionary;
 import org.apache.felix.dm.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.opendaylight.controller.protocol_plugin.openflow13.core.IController;
+import org.opendaylight.controller.protocol_plugin.openflow.core.IController;
 import org.opendaylight.controller.sal.core.ComponentActivatorAbstractBase;
 import org.opendaylight.controller.sal.packet.IListenDataPacket;
 import org.opendaylight.controller.sal.packet.IDataPacketService;
@@ -77,10 +77,7 @@ public class Activator extends ComponentActivatorAbstractBase {
             // export the services
             Dictionary<String, String> props1 = new Hashtable<String, String>();
             props1.put("salListenerName", "virtualNetworkManagerPacketListner");
-            Dictionary<String, String> props2 = new Hashtable<String, String>();
-            props2.put("salListenerName", "virtualNetworkManagerOFController");
             c.setInterface(new String[] { IListenDataPacket.class.getName() }, props1);
-            c.setInterface(new String[] { IController.class.getName() }, props2);
             // register dependent modules
             c.add(createContainerServiceDependency(containerName).setService(
                     ISwitchManager.class).setCallbacks("setSwitchManager",
@@ -94,6 +91,11 @@ public class Activator extends ComponentActivatorAbstractBase {
             c.add(createContainerServiceDependency(containerName).setService(
                     IFlowProgrammerService.class).setCallbacks(
                     "setFlowProgrammerService", "unsetFlowProgrammerService")
+                    .setRequired(true));
+            
+            c.add(createContainerServiceDependency(containerName).setService(
+                    IController.class).setCallbacks(
+                    "setControllerService", "unsetControllerService")
                     .setRequired(true));
         }
     }

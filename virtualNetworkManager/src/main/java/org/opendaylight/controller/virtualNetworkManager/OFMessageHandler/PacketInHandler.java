@@ -7,7 +7,7 @@ import org.opendaylight.controller.sal.packet.IDataPacketService;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
 import org.openflow.protocol.OFMessage;
 
-public class BarrierReplyHandler implements IMessageListener {
+public class PacketInHandler implements IMessageListener {
 
 	private IFlowProgrammerService programmer = null;
 	private IDataPacketService dataPacketService = null;
