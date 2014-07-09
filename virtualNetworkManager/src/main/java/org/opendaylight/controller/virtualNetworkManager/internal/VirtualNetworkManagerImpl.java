@@ -15,38 +15,31 @@
  *
  */
 
-package org.opendaylight.controller.tutorial_L2_forwarding.internal;
+package org.opendaylight.controller.virtualNetworkManager.internal;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.lang.String;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.FrameworkUtil;
+import org.opendaylight.controller.protocol_plugin.openflow.core.IController;
+import org.opendaylight.controller.protocol_plugin.openflow.core.ISwitchStateListener;
 import org.opendaylight.controller.sal.core.ConstructionException;
 import org.opendaylight.controller.sal.core.Node;
 import org.opendaylight.controller.sal.core.NodeConnector;
+import org.opendaylight.controller.sal.discovery.IDiscoveryService;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
 import org.opendaylight.controller.sal.flowprogrammer.Flow;
-import org.opendaylight.controller.sal.packet.ARP;
 import org.opendaylight.controller.sal.packet.BitBufferHelper;
 import org.opendaylight.controller.sal.packet.Ethernet;
-import org.opendaylight.controller.sal.packet.ICMP;
 import org.opendaylight.controller.sal.packet.IDataPacketService;
 import org.opendaylight.controller.sal.packet.IListenDataPacket;
 import org.opendaylight.controller.sal.packet.Packet;
@@ -54,30 +47,45 @@ import org.opendaylight.controller.sal.packet.PacketResult;
 import org.opendaylight.controller.sal.packet.RawPacket;
 import org.opendaylight.controller.sal.action.Action;
 import org.opendaylight.controller.sal.action.Output;
-import org.opendaylight.controller.sal.action.Flood;
 import org.opendaylight.controller.sal.match.Match;
 import org.opendaylight.controller.sal.match.MatchType;
 import org.opendaylight.controller.sal.match.MatchField;
-import org.opendaylight.controller.sal.utils.EtherTypes;
+import org.opendaylight.controller.sal.topology.ITopologyService;
 import org.opendaylight.controller.sal.utils.Status;
-import org.opendaylight.controller.sal.utils.NetUtils;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
-import org.opendaylight.controller.switchmanager.Subnet;
+import org.opendaylight.controller.topologymanager.ITopologyManager;
+import org.opendaylight.controller.virtualNetworkManager.core.IVirtualNetworkManager;
 
-public class TutorialL2Forwarding implements IListenDataPacket {
-    private static final Logger logger = LoggerFactory
-            .getLogger(TutorialL2Forwarding.class);
+public class VirtualNetworkManagerImpl implements IVirtualNetworkManager{
+	
+   
+
+	private static final Logger logger = LoggerFactory
+            .getLogger(VirtualNetworkManagerImpl.class);
+	
+	public VirtualNetworkManagerImpl() {
+		super();
+		logger.info("Vnm getting instancetiated");
+	}
+	
     private ISwitchManager switchManager = null;
-    private IFlowProgrammerService programmer = null;
+    private IFlowProgrammerService flowProgrammer = null;
     private IDataPacketService dataPacketService = null;
     private Map<Long, NodeConnector> mac_to_port = new HashMap<Long, NodeConnector>();
+    private ISwitchStateListener switchState = null;
     private String function = "switch";
+    private IController controller = null;
+	private ITopologyService topologyService;
+	private IDiscoveryService discService;
+	private ITopologyManager topologyManager;
 
     void setDataPacketService(IDataPacketService s) {
+    	logger.info("Datapacketservice set");
         this.dataPacketService = s;
     }
 
     void unsetDataPacketService(IDataPacketService s) {
+    	logger.info("Datapacketservice reset");
         if (this.dataPacketService == s) {
             this.dataPacketService = null;
         }
@@ -85,42 +93,95 @@ public class TutorialL2Forwarding implements IListenDataPacket {
 
     public void setFlowProgrammerService(IFlowProgrammerService s)
     {
-        this.programmer = s;
+    	logger.info("FlowProgrammer is set!");
+        this.flowProgrammer = s;
     }
 
     public void unsetFlowProgrammerService(IFlowProgrammerService s) {
-        if (this.programmer == s) {
-            this.programmer = null;
+    	logger.info("FlowProgrammer is removed!");
+        if (this.flowProgrammer == s) {
+            this.flowProgrammer = null;
         }
     }
 
     void setSwitchManager(ISwitchManager s) {
-        logger.debug("SwitchManager set");
+        logger.info("SwitchManager is set!");
         this.switchManager = s;
     }
 
     void unsetSwitchManager(ISwitchManager s) {
         if (this.switchManager == s) {
-            logger.debug("SwitchManager removed!");
+            logger.info("SwitchManager is removed!");
             this.switchManager = null;
         }
     }
 
+    void setControllerService(IController s) {
+    	logger.info("Controller is set!");
+    	this.controller = s;
+    }
+    
+    void unsetControllerService(IController s){
+    	if (this.controller == s) {
+            logger.info("Controller is removed!");
+            this.controller = null;
+        }
+    }
+    
+    /*
+    void setTopologyService(ITopologyService s) {
+    	logger.info("Topology Service set");
+    	this.topologyService = s;
+    }
+    
+    void unsetTopologyService(ITopologyService s){
+    	if (this.topologyService == s) {
+            logger.info("Topology Service removed!");
+            this.topologyService = null;
+        }
+    }
+    
+    void setDiscService(IDiscoveryService s) {
+    	logger.info("Discovery Service set");
+    	this.discService = s;
+    }
+    
+    void unsetDiscService(IDiscoveryService s){
+    	if (this.discService == s) {
+            logger.info("Discovery Service removed!");
+            this.discService = null;
+        }
+    }
+    
+    void setTopoManager(ITopologyManager s) {
+    	logger.info("Topology Manager set");
+    	this.topologyManager = s;
+    }
+    
+    void unsetTopoManager(ITopologyManager s){
+    	if (this.topologyService == s) {
+            logger.info("Topology Manager removed!");
+            this.topologyManager = null;
+        }
+    }
+    */
+    
     /**
      * Function called by the dependency manager when all the required
      * dependencies are satisfied
      *
      */
     void init() {
-        logger.info("Initialized");
+    	logger.info("Vnm getting Initilizing by Dependency Manager!");
         // Disabling the SimpleForwarding and ARPHandler bundle to not conflict with this one
         BundleContext bundleContext = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
         for(Bundle bundle : bundleContext.getBundles()) {
             if (bundle.getSymbolicName().contains("simpleforwarding")) {
                 try {
+                	logger.info("Uninstalling Bundle:'simpleforwarding' to avoid conflict!");
                     bundle.uninstall();
                 } catch (BundleException e) {
-                    logger.error("Exception in Bundle uninstall "+bundle.getSymbolicName(), e); 
+                    logger.warn("Exception in Bundle uninstall: "+bundle.getSymbolicName(), e); 
                 }   
             }   
         }   
@@ -143,7 +204,23 @@ public class TutorialL2Forwarding implements IListenDataPacket {
      *
      */
     void start() {
-        logger.info("Started");
+    	
+    	SwitchStateManager switchStateManager = null;
+    	OFEventManager ofEventManager = null;
+    	VnmServicePojo services = null;
+    	logger.info("Virtual Network Manager is started!");
+    	
+    	services = new VnmServicePojo();
+    	
+        logger.info("Initializing Switch State Manager!");
+        switchStateManager = new SwitchStateManager();
+        switchStateManager.setServices(services);
+        controller.addSwitchStateListener(switchStateManager);
+        
+        logger.info("Initializing OF Event Manager ");
+        ofEventManager = new OFEventManager();
+        ofEventManager.setServices(services);
+        ofEventManager.registerMessageHandlers();
     }
 
     /**
@@ -177,30 +254,38 @@ public class TutorialL2Forwarding implements IListenDataPacket {
     }
 
 
-
+/*
     @Override
     public PacketResult receiveDataPacket(RawPacket inPkt) {
-        if (inPkt == null) {
+ 
+    	logger.info("Packet Received: " + inPkt);
+    	
+    	if (inPkt == null) {
+    		logger.info("<<<<<<>>>>>>>  Packet Received: Null ");
             return PacketResult.IGNORED;
         }
 
         NodeConnector incoming_connector = inPkt.getIncomingNodeConnector();
 
         // Hub implementation
+        logger.info("<<<<<<>>>>>>> State of Switch: " + function);
         if (function.equals("hub")) {
-            floodPacket(inPkt);
+        	floodPacket(inPkt);
         } else {
             Packet formattedPak = this.dataPacketService.decodeDataPacket(inPkt);
             if (!(formattedPak instanceof Ethernet)) {
                 return PacketResult.IGNORED;
             }
 
+            logger.info("learning Source MAC: setting incoming connector for the source MAC");
             learnSourceMAC(formattedPak, incoming_connector);
             NodeConnector outgoing_connector = 
                 knowDestinationMAC(formattedPak);
             if (outgoing_connector == null) {
+            	logger.info("<<<<<<>>>>>>>  No outgoing connector for the MAC: Flooding packet: " + inPkt);
                 floodPacket(inPkt);
             } else {
+            	logger.info("<<<<<<>>>>>>>  Outgoing connector Found for the MAC: Set flow and transmit: " + inPkt);
                 if (!programFlow(formattedPak, incoming_connector,
                             outgoing_connector)) {
                     return PacketResult.IGNORED;
@@ -211,7 +296,7 @@ public class TutorialL2Forwarding implements IListenDataPacket {
         }
         return PacketResult.CONSUME;
     }
-
+*/
     private void learnSourceMAC(Packet formattedPak, NodeConnector incoming_connector) {
         byte[] srcMAC = ((Ethernet)formattedPak).getSourceMACAddress();
         long srcMAC_val = BitBufferHelper.toNumber(srcMAC);
@@ -241,7 +326,7 @@ public class TutorialL2Forwarding implements IListenDataPacket {
 
         // Modify the flow on the network node
         Node incoming_node = incoming_connector.getNode();
-        Status status = programmer.addFlow(incoming_node, f);
+        Status status = flowProgrammer.addFlow(incoming_node, f);
 
         if (!status.isSuccess()) {
             logger.warn("SDN Plugin failed to program the flow: {}. The failure is: {}",
@@ -250,5 +335,9 @@ public class TutorialL2Forwarding implements IListenDataPacket {
         } else {
             return true;
         }
+    }
+    
+    public void createVN(){
+    	logger.info("VN created by VNM!");
     }
 }

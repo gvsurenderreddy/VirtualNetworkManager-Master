@@ -14,15 +14,15 @@ import junit.framework.TestCase;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.opendaylight.controller.virtualNetworkManager.VirtualNetworkManager;
+import org.opendaylight.controller.virtualNetworkManager.internal.VirtualNetworkManagerImpl;
 
 public class VirtualNetworkManagerTest extends TestCase {
 
         @Test
         public void testTutorialL2ForwardingCreation() {
 
-                VirtualNetworkManager ah = null;
-                ah = new VirtualNetworkManager();
+                VirtualNetworkManagerImpl ah = null;
+                ah = new VirtualNetworkManagerImpl();
                 Assert.assertTrue(ah != null);
 
         }

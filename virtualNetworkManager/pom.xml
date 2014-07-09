@@ -46,13 +46,15 @@
               org.slf4j,
               org.eclipse.osgi.framework.console,
               org.osgi.framework,
-              org.osgi.service.log
+              org.osgi.service.log,
+              org.openflow.protocol
             </Import-Package>
             <Export-Package>
-              org.opendaylight.controller.virtualNetworkManager
+              org.opendaylight.controller.virtualNetworkManager,
+              org.opendaylight.controller.virtualNetworkManager.core
             </Export-Package>
             <Bundle-Activator>
-              org.opendaylight.controller.virtualNetworkManager.Activator
+              org.opendaylight.controller.virtualNetworkManager.internal.Activator
             </Bundle-Activator>
           </instructions>
           <manifestLocation>${project.basedir}/META-INF</manifestLocation>

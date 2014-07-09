@@ -7,7 +7,7 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-package org.opendaylight.controller.virtualNetworkManager;
+package org.opendaylight.controller.virtualNetworkManager.internal;
 
 import java.util.Collection;
 import java.util.Hashtable;
@@ -31,6 +31,7 @@ import org.opendaylight.controller.sal.topology.ITopologyService;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
 import org.opendaylight.controller.topologymanager.ITopologyManager;
+import org.opendaylight.controller.virtualNetworkManager.core.IVirtualNetworkManager;
 
 
 public class Activator extends ComponentActivatorAbstractBase {
@@ -66,8 +67,8 @@ public class Activator extends ComponentActivatorAbstractBase {
      * Object
      */
     public Object[] getImplementations() {
-    	logger.info("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER getting Implementation >>>>>>>>>>>>>>>>>>>>");
-        Object[] res = { VirtualNetworkManager.class};
+    	logger.info("Bundle getting Virtual Network Manager implementation info!");
+        Object[] res = { VirtualNetworkManagerImpl.class};
         return res;
     }
 
@@ -86,48 +87,17 @@ public class Activator extends ComponentActivatorAbstractBase {
      */
     public void configureInstance(Component c, Object imp, String containerName) {
     	
-    	ServiceReference<?>[] array;
-    	ServiceReference services;
-    	
-    	BundleContext bc = FrameworkUtil.getBundle(VirtualNetworkManager.class).getBundleContext();
-    	if(bc == null){
-    		logger.info("<<<<<<<<<<<<<<<<<<<< BundleContext Null >>>>>>>>>>>>>>>>>>>>");
-    	}
-    	else{
-    		logger.info("<<<<<<<<<<<<<<<<<<<< BundleContext Set >>>>>>>>>>>>>>>>>>>>");
-        	try {
-        		array = bc.getServiceReferences(VirtualNetworkManager.class.toString(), null);
-        		if(array != null){
-        			logger.info("<<<<<<<<<<<<<<<<<<<< Array Not Null :" + array.length + ">>>>>>>>>>>>>>>>>>>>");
-        			
-	        		for(ServiceReference<?> service2 : array){
-	        			logger.info("<<<<<< Service :  " + service2.toString());
-	        		}
-        		}
-        		else {
-        			logger.info("<<<<<<<<<<<<<<<<<<<< Array Is Null >>>>>>>>>>>>>>>>>>>>");
-        		}
-			} catch (InvalidSyntaxException e) {
-				// TODO Auto-generated catch block
-				logger.info("<<<<<<<<<<<<<<<<<<<< Get serviceReference Exception  >>>>>>>>>>>>>>>>>>>>");
-			}
-    	}
-    	
-    	
-        if (imp.equals(VirtualNetworkManager.class)) {
-            // export the services
-        	logger.info("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER >>>>>>>>>>>>>>>>>>>>");
-        	logger.warn("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER >>>>>>>>>>>>>>>>>>>>");
-        	
-           // Dictionary<String, String> props1 = new Hashtable<String, String>();
-          //  props1.put("salListenerName", "virtualNetworkManager");
-          //  c.setInterface(new String[] { IListenDataPacket.class.getName() }, props1);
-            // register dependent modules
+        if (imp.equals(VirtualNetworkManagerImpl.class)) {
             
-            logger.info("<<<<<<<<<<<<<<<<<<<< Registering services >>>>>>>>>>>>>>>>>>>>");
-        	logger.warn("<<<<<<<<<<<<<<<<<<<< Registering services >>>>>>>>>>>>>>>>>>>>");
+        	logger.info("Exporting the VNM services as VirtualNetworkManager");      	
         	
+        	Dictionary<String, String> props = new Hashtable<String, String>();
+        	props.put("salListenerName", "VirtualNetworkManager");
+        	c.setInterface(new String[] { IVirtualNetworkManager.class.getName() }, props);
             
+        	
+            logger.info("Registering dependent services");
+                
             c.add(createContainerServiceDependency(containerName).setService(
                     ISwitchManager.class).setCallbacks("setSwitchManager",
                     "unsetSwitchManager").setRequired(true));
@@ -142,13 +112,18 @@ public class Activator extends ComponentActivatorAbstractBase {
                     "setFlowProgrammerService", "unsetFlowProgrammerService")
                     .setRequired(true));
             
+            c.add(createServiceDependency()
+                    .setService(IController.class, "(name=Controller)")
+                    .setCallbacks("setControllerService", "unsetControllerService")
+                    .setRequired(true));
+            /*
             c.add(createContainerServiceDependency(containerName).setService(
             		ITopologyService.class).setCallbacks(
                     "setTopologyService", "unsetTopologyService")
                     .setRequired(false));
             
-            c.add(createContainerServiceDependency(containerName).setService(IDiscoveryService
-            		.class).setCallbacks(
+            c.add(createServiceDependency().setService(IDiscoveryService
+            		.class, "(name=Controller)").setCallbacks(
                     "setDiscService", "unsetDiscService")
                     .setRequired(false));
             
@@ -156,22 +131,11 @@ public class Activator extends ComponentActivatorAbstractBase {
             		.class).setCallbacks(
                     "setTopoManager", "unsetTopoManager")
                     .setRequired(false));
+            */
             
-            logger.info("<<<<<<<<<<<<<<<<<<<< Registering IController services >>>>>>>>>>>>>>>>>>>>");
-        	logger.warn("<<<<<<<<<<<<<<<<<<<< Registering IController services >>>>>>>>>>>>>>>>>>>>");
-    		c.add(createServiceDependency()
-                .setService(IController.class, "(name=Controller)")
-                .setCallbacks("setControllerService", "unsetControllerService")
-                .setRequired(true));
-            logger.info("<<<<<<<<<<<<<<<<<<<< Registered IController services >>>>>>>>>>>>>>>>>>>>");
-        	logger.warn("<<<<<<<<<<<<<<<<<<<< Registered IController services >>>>>>>>>>>>>>>>>>>>");
+    		
         	
         }
     }
     
-    public void configureGlobalInstance(Component c, Object imp) {
-    	
-    		
-    	
-    }
 }

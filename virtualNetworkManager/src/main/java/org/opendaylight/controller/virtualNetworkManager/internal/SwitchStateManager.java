@@ -1,4 +1,4 @@
-package org.opendaylight.controller.virtualNetworkManager;
+package org.opendaylight.controller.virtualNetworkManager.internal;
 
 import org.opendaylight.controller.protocol_plugin.openflow.core.ISwitch;
 import org.opendaylight.controller.protocol_plugin.openflow.core.ISwitchStateListener;
@@ -12,31 +12,27 @@ public class SwitchStateManager implements ISwitchStateListener {
 
 	private static final Logger logger = LoggerFactory
             .getLogger(SwitchStateManager.class);
-	private IFlowProgrammerService programmer = null;
-	private IDataPacketService dataPacketService = null;
-	private ISwitchManager switchManager = null;
+	private VnmServicePojo services = null;
+	
+	public VnmServicePojo getServices() {
+		return services;
+	}
 
-	public void setFlowProgrammerService(IFlowProgrammerService s){
-        this.programmer = s;
-    }
-	
-	void setDataPacketService(IDataPacketService s) {
-        this.dataPacketService = s;
-    }
-	
-	void setSwitchManager(ISwitchManager s) {
-        this.switchManager = s;
-    }
+	public void setServices(VnmServicePojo services) {
+		this.services = services;
+	}
 
 	@Override
 	public void switchAdded(ISwitch arg0) {
 		// TODO Auto-generated method stub
-		
+		logger.info("New OpenFlow Switch Added Info has reached to VNM!");
 	}
 
 	@Override
 	public void switchDeleted(ISwitch arg0) {
 		// TODO Auto-generated method stub
-		
+		logger.info("New OpenFlow Switch Deleted Info has reached to VNM!");
 	}
+
+	
 }
