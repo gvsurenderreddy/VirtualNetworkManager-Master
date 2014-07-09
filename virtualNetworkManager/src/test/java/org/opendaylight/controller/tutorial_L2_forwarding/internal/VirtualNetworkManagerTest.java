@@ -16,7 +16,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opendaylight.controller.virtualNetworkManager.VirtualNetworkManager;
 
-public class TutorialL2ForwardingTest extends TestCase {
+public class VirtualNetworkManagerTest extends TestCase {
 
         @Test
         public void testTutorialL2ForwardingCreation() {

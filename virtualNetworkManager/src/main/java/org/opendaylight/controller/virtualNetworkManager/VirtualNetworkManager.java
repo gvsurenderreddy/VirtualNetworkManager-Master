@@ -23,6 +23,7 @@ import java.util.Set;
 import java.lang.String;
 import java.util.Map;
 import java.util.HashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.osgi.framework.Bundle;
@@ -34,6 +35,7 @@ import org.opendaylight.controller.protocol_plugin.openflow.core.ISwitchStateLis
 import org.opendaylight.controller.sal.core.ConstructionException;
 import org.opendaylight.controller.sal.core.Node;
 import org.opendaylight.controller.sal.core.NodeConnector;
+import org.opendaylight.controller.sal.discovery.IDiscoveryService;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
 import org.opendaylight.controller.sal.flowprogrammer.Flow;
 import org.opendaylight.controller.sal.packet.BitBufferHelper;
@@ -48,27 +50,43 @@ import org.opendaylight.controller.sal.action.Output;
 import org.opendaylight.controller.sal.match.Match;
 import org.opendaylight.controller.sal.match.MatchType;
 import org.opendaylight.controller.sal.match.MatchField;
+import org.opendaylight.controller.sal.topology.ITopologyService;
 import org.opendaylight.controller.sal.utils.Status;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
-import org.openflow.protocol.OFType;
+import org.opendaylight.controller.topologymanager.ITopologyManager;
 
-public class VirtualNetworkManager implements IListenDataPacket{
+public class VirtualNetworkManager {
 	
-    private static final Logger logger = LoggerFactory
+   
+
+	private static final Logger logger = LoggerFactory
             .getLogger(VirtualNetworkManager.class);
+	
+	public VirtualNetworkManager() {
+		super();
+		logger.info("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER Instance >>>>>>>>>>>>>>>>>>>>");
+    	logger.warn("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER Instance >>>>>>>>>>>>>>>>>>>>");	
+	}
+	
     private ISwitchManager switchManager = null;
     private IFlowProgrammerService flowProgrammer = null;
     private IDataPacketService dataPacketService = null;
     private Map<Long, NodeConnector> mac_to_port = new HashMap<Long, NodeConnector>();
-    private ISwitchStateListener switchStateListner = null;
-    private IController controller = null;
+    //private ISwitchStateListener switchStateListner = null;
+    private ISwitchStateListener switchState = null;
     private String function = "switch";
+    private IController controller = null;
+	private ITopologyService topologyService;
+	private IDiscoveryService discService;
+	private ITopologyManager topologyManager;
 
     void setDataPacketService(IDataPacketService s) {
+    	logger.info("Datapacketservice set");
         this.dataPacketService = s;
     }
 
     void unsetDataPacketService(IDataPacketService s) {
+    	logger.info("Datapacketservice reset");
         if (this.dataPacketService == s) {
             this.dataPacketService = null;
         }
@@ -76,38 +94,77 @@ public class VirtualNetworkManager implements IListenDataPacket{
 
     public void setFlowProgrammerService(IFlowProgrammerService s)
     {
+    	logger.info("FlowProgrammer set");
         this.flowProgrammer = s;
     }
 
     public void unsetFlowProgrammerService(IFlowProgrammerService s) {
+    	logger.info("FlowProgrammer reset");
         if (this.flowProgrammer == s) {
             this.flowProgrammer = null;
         }
     }
 
     void setSwitchManager(ISwitchManager s) {
-        logger.debug("SwitchManager set");
+        logger.info("SwitchManager set");
         this.switchManager = s;
     }
 
     void unsetSwitchManager(ISwitchManager s) {
         if (this.switchManager == s) {
-            logger.debug("SwitchManager removed!");
+            logger.info("SwitchManager removed!");
             this.switchManager = null;
         }
     }
 
     void setControllerService(IController s) {
-    	logger.debug("Controller set");
+    	logger.info("<<<<<<<<<<<<<>>>>>>>>>>>>>>>>> Controller set");
     	this.controller = s;
     }
     
     void unsetControllerService(IController s){
     	if (this.controller == s) {
-            logger.debug("Controller removed!");
+            logger.info("<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>> Controller removed!");
             this.controller = null;
         }
     }
+    
+    void setTopologyService(ITopologyService s) {
+    	logger.info("<< Topology Service set");
+    	this.topologyService = s;
+    }
+    
+    void unsetTopologyService(ITopologyService s){
+    	if (this.topologyService == s) {
+            logger.info("<< Topology Service removed!");
+            this.topologyService = null;
+        }
+    }
+    
+    void setDiscService(IDiscoveryService s) {
+    	logger.info("<< Openflow Discovery Service set");
+    	this.discService = s;
+    }
+    
+    void unsetDiscService(IDiscoveryService s){
+    	if (this.discService == s) {
+            logger.info("<< Openflow Discovery Service removed!");
+            this.discService = null;
+        }
+    }
+    
+    void setTopoManager(ITopologyManager s) {
+    	logger.info("<< Topology Manager set");
+    	this.topologyManager = s;
+    }
+    
+    void unsetTopoManager(ITopologyManager s){
+    	if (this.topologyService == s) {
+            logger.info("<< Topology Manager removed!");
+            this.topologyManager = null;
+        }
+    }
+    
     
     /**
      * Function called by the dependency manager when all the required
@@ -115,12 +172,15 @@ public class VirtualNetworkManager implements IListenDataPacket{
      *
      */
     void init() {
-        logger.info("Initialized");
+    	logger.info("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER Initilizing >>>>>>>>>>>>>>>>>>>>");
+    	logger.warn("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER Initilizing >>>>>>>>>>>>>>>>>>>>");
         // Disabling the SimpleForwarding and ARPHandler bundle to not conflict with this one
         BundleContext bundleContext = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
         for(Bundle bundle : bundleContext.getBundles()) {
             if (bundle.getSymbolicName().contains("simpleforwarding")) {
                 try {
+                	logger.info("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER Uninstalling >>>>>>>>>>>>>>>>>>>>");
+                	logger.warn("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER Uninstalling >>>>>>>>>>>>>>>>>>>>");
                     bundle.uninstall();
                 } catch (BundleException e) {
                     logger.error("Exception in Bundle uninstall "+bundle.getSymbolicName(), e); 
@@ -146,15 +206,25 @@ public class VirtualNetworkManager implements IListenDataPacket{
      *
      */
     void start() {
+    	logger.info("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER Started >>>>>>>>>>>>>>>>>>>>");
+    	logger.warn("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER Started >>>>>>>>>>>>>>>>>>>>");
+       
     	SwitchStateManager switchStateManager = null;
     	OFEventManager ofEventManager = null;
-    
-        logger.info("Initializing Switch State Manager");
+    	
+    	if(controller == null){
+    		logger.info("<<<<<<<<<<<<<<<<<<<< Controller NULL >>>>>>>>>>>>>>>>>>>>");
+        	logger.warn("<<<<<<<<<<<<<<<<<<<< Controller NULL >>>>>>>>>>>>>>>>>>>>");
+           
+    	}
+    /*
+        logger.info("<<<<<<<<<<<<<<<<<<<< VIRTUAL NETWORK MANAGER: Initializing Switch State Manager >>>>>>>>>>>>>>>>>>>>");
         switchStateManager = new SwitchStateManager();
         switchStateManager.setDataPacketService(dataPacketService);
         switchStateManager.setFlowProgrammerService(flowProgrammer);
         switchStateManager.setSwitchManager(switchManager);
         controller.addSwitchStateListener(switchStateManager);
+        */
     /*    
         logger.info("Initializing OF Event Manager ");
         ofEventManager = new OFEventManager();
@@ -196,7 +266,7 @@ public class VirtualNetworkManager implements IListenDataPacket{
     }
 
 
-
+/*
     @Override
     public PacketResult receiveDataPacket(RawPacket inPkt) {
  
@@ -238,7 +308,7 @@ public class VirtualNetworkManager implements IListenDataPacket{
         }
         return PacketResult.CONSUME;
     }
-
+*/
     private void learnSourceMAC(Packet formattedPak, NodeConnector incoming_connector) {
         byte[] srcMAC = ((Ethernet)formattedPak).getSourceMACAddress();
         long srcMAC_val = BitBufferHelper.toNumber(srcMAC);
