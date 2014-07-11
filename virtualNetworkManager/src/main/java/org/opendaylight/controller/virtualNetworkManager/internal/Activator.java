@@ -9,29 +9,20 @@
 
 package org.opendaylight.controller.virtualNetworkManager.internal;
 
-import java.util.Collection;
-import java.util.Hashtable;
 import java.util.Dictionary;
-import java.util.Iterator;
+import java.util.Hashtable;
 
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceReference;
-import org.osgi.service.log.LogService;
 import org.apache.felix.dm.Component;
+import org.opendaylight.controller.forwardingrulesmanager.IForwardingRulesManager;
+import org.opendaylight.controller.sal.core.ComponentActivatorAbstractBase;
+import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
+import org.opendaylight.controller.sal.packet.IDataPacketService;
+import org.opendaylight.controller.statisticsmanager.IStatisticsManager;
+import org.opendaylight.controller.switchmanager.IInventoryListener;
+import org.opendaylight.controller.switchmanager.ISwitchManager;
+import org.opendaylight.controller.virtualNetworkManager.core.IVirtualNetworkManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.opendaylight.controller.protocol_plugin.openflow.core.IController;
-import org.opendaylight.controller.sal.core.ComponentActivatorAbstractBase;
-import org.opendaylight.controller.sal.discovery.IDiscoveryService;
-import org.opendaylight.controller.sal.packet.IListenDataPacket;
-import org.opendaylight.controller.sal.packet.IDataPacketService;
-import org.opendaylight.controller.sal.topology.ITopologyService;
-import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
-import org.opendaylight.controller.switchmanager.ISwitchManager;
-import org.opendaylight.controller.topologymanager.ITopologyManager;
-import org.opendaylight.controller.virtualNetworkManager.core.IVirtualNetworkManager;
 
 
 public class Activator extends ComponentActivatorAbstractBase {
@@ -44,7 +35,8 @@ public class Activator extends ComponentActivatorAbstractBase {
      * ComponentActivatorAbstractBase.
      *
      */
-    public void init() {
+    @Override
+	public void init() {
 
     }
 
@@ -53,7 +45,8 @@ public class Activator extends ComponentActivatorAbstractBase {
      * cleanup done by ComponentActivatorAbstractBase
      *
      */
-    public void destroy() {
+    @Override
+	public void destroy() {
 
     }
 
@@ -66,7 +59,8 @@ public class Activator extends ComponentActivatorAbstractBase {
      * instantiated in order to get an fully working implementation
      * Object
      */
-    public Object[] getImplementations() {
+    @Override
+	public Object[] getImplementations() {
     	logger.info("Bundle getting Virtual Network Manager implementation info!");
         Object[] res = { VirtualNetworkManagerImpl.class};
         return res;
@@ -85,19 +79,19 @@ public class Activator extends ComponentActivatorAbstractBase {
      * also optional per-container different behavior if needed, usually
      * should not be the case though.
      */
-    public void configureInstance(Component c, Object imp, String containerName) {
-    	
+    @Override
+	public void configureInstance(Component c, Object imp, String containerName) {
+
         if (imp.equals(VirtualNetworkManagerImpl.class)) {
-            
-        	logger.info("Exporting the VNM services as VirtualNetworkManager");      	
-        	
+
+        	logger.info("Exporting the VNM services as VirtualNetworkManager");
+
         	Dictionary<String, String> props = new Hashtable<String, String>();
         	props.put("salListenerName", "VirtualNetworkManager");
-        	c.setInterface(new String[] { IVirtualNetworkManager.class.getName() }, props);
-            
-        	
+        	c.setInterface(new String[] { IVirtualNetworkManager.class.getName(), IInventoryListener.class.getName()}, props);
+
             logger.info("Registering dependent services");
-                
+
             c.add(createContainerServiceDependency(containerName).setService(
                     ISwitchManager.class).setCallbacks("setSwitchManager",
                     "unsetSwitchManager").setRequired(true));
@@ -108,34 +102,25 @@ public class Activator extends ComponentActivatorAbstractBase {
                     .setRequired(true));
 
             c.add(createContainerServiceDependency(containerName).setService(
+                    IForwardingRulesManager.class).setCallbacks(
+                    "setForwardingRulesManager", "unsetForwardingRulesManager")
+                    .setRequired(true));
+
+            c.add(createContainerServiceDependency(containerName).setService(
                     IFlowProgrammerService.class).setCallbacks(
                     "setFlowProgrammerService", "unsetFlowProgrammerService")
                     .setRequired(true));
-            
+
+            c.add(createServiceDependency().setService(IStatisticsManager.class)
+                    .setCallbacks("setStatisticsManager", "unsetStatisticsManager").setRequired(true));
+
+            /* Goodbye IController: we don't need you for now. We have got everything Sal and IInventoryListener ;)
             c.add(createServiceDependency()
                     .setService(IController.class, "(name=Controller)")
                     .setCallbacks("setControllerService", "unsetControllerService")
                     .setRequired(true));
-            /*
-            c.add(createContainerServiceDependency(containerName).setService(
-            		ITopologyService.class).setCallbacks(
-                    "setTopologyService", "unsetTopologyService")
-                    .setRequired(false));
-            
-            c.add(createServiceDependency().setService(IDiscoveryService
-            		.class, "(name=Controller)").setCallbacks(
-                    "setDiscService", "unsetDiscService")
-                    .setRequired(false));
-            
-            c.add(createContainerServiceDependency(containerName).setService(ITopologyManager
-            		.class).setCallbacks(
-                    "setTopoManager", "unsetTopoManager")
-                    .setRequired(false));
             */
-            
-    		
-        	
         }
     }
-    
+
 }

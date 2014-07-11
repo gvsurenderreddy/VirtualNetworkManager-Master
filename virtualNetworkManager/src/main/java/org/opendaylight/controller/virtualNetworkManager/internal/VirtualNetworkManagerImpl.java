@@ -17,69 +17,45 @@
 
 package org.opendaylight.controller.virtualNetworkManager.internal;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Set;
-import java.lang.String;
 import java.util.Map;
-import java.util.HashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.opendaylight.controller.forwardingrulesmanager.IForwardingRulesManager;
+import org.opendaylight.controller.sal.core.Node;
+import org.opendaylight.controller.sal.core.NodeConnector;
+import org.opendaylight.controller.sal.core.Property;
+import org.opendaylight.controller.sal.core.UpdateType;
+import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
+import org.opendaylight.controller.sal.packet.IDataPacketService;
+import org.opendaylight.controller.statisticsmanager.IStatisticsManager;
+import org.opendaylight.controller.switchmanager.IInventoryListener;
+import org.opendaylight.controller.switchmanager.ISwitchManager;
+import org.opendaylight.controller.virtualNetworkManager.core.IVirtualNetworkManager;
+import org.opendaylight.controller.virtualNetworkManager.core.VNMNode;
+import org.opendaylight.controller.virtualNetworkManager.core.VNMSwitch;
+import org.opendaylight.controller.virtualNetworkManager.core.VNMTunnel;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.FrameworkUtil;
-import org.opendaylight.controller.protocol_plugin.openflow.core.IController;
-import org.opendaylight.controller.protocol_plugin.openflow.core.ISwitchStateListener;
-import org.opendaylight.controller.sal.core.ConstructionException;
-import org.opendaylight.controller.sal.core.Node;
-import org.opendaylight.controller.sal.core.NodeConnector;
-import org.opendaylight.controller.sal.discovery.IDiscoveryService;
-import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
-import org.opendaylight.controller.sal.flowprogrammer.Flow;
-import org.opendaylight.controller.sal.packet.BitBufferHelper;
-import org.opendaylight.controller.sal.packet.Ethernet;
-import org.opendaylight.controller.sal.packet.IDataPacketService;
-import org.opendaylight.controller.sal.packet.IListenDataPacket;
-import org.opendaylight.controller.sal.packet.Packet;
-import org.opendaylight.controller.sal.packet.PacketResult;
-import org.opendaylight.controller.sal.packet.RawPacket;
-import org.opendaylight.controller.sal.action.Action;
-import org.opendaylight.controller.sal.action.Output;
-import org.opendaylight.controller.sal.match.Match;
-import org.opendaylight.controller.sal.match.MatchType;
-import org.opendaylight.controller.sal.match.MatchField;
-import org.opendaylight.controller.sal.topology.ITopologyService;
-import org.opendaylight.controller.sal.utils.Status;
-import org.opendaylight.controller.switchmanager.ISwitchManager;
-import org.opendaylight.controller.topologymanager.ITopologyManager;
-import org.opendaylight.controller.virtualNetworkManager.core.IVirtualNetworkManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class VirtualNetworkManagerImpl implements IVirtualNetworkManager{
-	
-   
+public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInventoryListener{
 
 	private static final Logger logger = LoggerFactory
             .getLogger(VirtualNetworkManagerImpl.class);
-	
+    private ISwitchManager switchManager = null;
+    private IFlowProgrammerService flowProgrammer = null;
+    private IDataPacketService dataPacketService = null;
+    private IForwardingRulesManager forwardingRulesManager = null;
+	private IStatisticsManager statManager = null;
+
 	public VirtualNetworkManagerImpl() {
 		super();
 		logger.info("Vnm getting instancetiated");
 	}
-	
-    private ISwitchManager switchManager = null;
-    private IFlowProgrammerService flowProgrammer = null;
-    private IDataPacketService dataPacketService = null;
-    private Map<Long, NodeConnector> mac_to_port = new HashMap<Long, NodeConnector>();
-    private ISwitchStateListener switchState = null;
-    private String function = "switch";
-    private IController controller = null;
-	private ITopologyService topologyService;
-	private IDiscoveryService discService;
-	private ITopologyManager topologyManager;
 
-    void setDataPacketService(IDataPacketService s) {
+	void setDataPacketService(IDataPacketService s) {
     	logger.info("Datapacketservice set");
         this.dataPacketService = s;
     }
@@ -116,56 +92,30 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager{
         }
     }
 
-    void setControllerService(IController s) {
-    	logger.info("Controller is set!");
-    	this.controller = s;
+    void setForwardingRulesManager(IForwardingRulesManager s){
+    	logger.info("ForwardingRulesManager is set!");
+    	forwardingRulesManager = s;
     }
-    
-    void unsetControllerService(IController s){
-    	if (this.controller == s) {
+
+    void unsetForwardingRulesManager(IForwardingRulesManager s){
+    	if (this.forwardingRulesManager == s) {
             logger.info("Controller is removed!");
-            this.controller = null;
+            this.forwardingRulesManager = null;
         }
     }
-    
-    /*
-    void setTopologyService(ITopologyService s) {
-    	logger.info("Topology Service set");
-    	this.topologyService = s;
+
+    void setStatisticsManager(IStatisticsManager s){
+    	logger.info("Statistics Manager is set!");
+    	statManager = s;
     }
-    
-    void unsetTopologyService(ITopologyService s){
-    	if (this.topologyService == s) {
-            logger.info("Topology Service removed!");
-            this.topologyService = null;
+
+    void unsetStatisticsManager(IStatisticsManager s){
+    	if (this.statManager  == s) {
+            logger.info("Statistics Manager is removed!");
+            this.statManager = null;
         }
     }
-    
-    void setDiscService(IDiscoveryService s) {
-    	logger.info("Discovery Service set");
-    	this.discService = s;
-    }
-    
-    void unsetDiscService(IDiscoveryService s){
-    	if (this.discService == s) {
-            logger.info("Discovery Service removed!");
-            this.discService = null;
-        }
-    }
-    
-    void setTopoManager(ITopologyManager s) {
-    	logger.info("Topology Manager set");
-    	this.topologyManager = s;
-    }
-    
-    void unsetTopoManager(ITopologyManager s){
-    	if (this.topologyService == s) {
-            logger.info("Topology Manager removed!");
-            this.topologyManager = null;
-        }
-    }
-    */
-    
+
     /**
      * Function called by the dependency manager when all the required
      * dependencies are satisfied
@@ -181,11 +131,11 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager{
                 	logger.info("Uninstalling Bundle:'simpleforwarding' to avoid conflict!");
                     bundle.uninstall();
                 } catch (BundleException e) {
-                    logger.warn("Exception in Bundle uninstall: "+bundle.getSymbolicName(), e); 
-                }   
-            }   
-        }   
- 
+                    logger.warn("Exception in Bundle uninstall: "+bundle.getSymbolicName(), e);
+                }
+            }
+        }
+
     }
 
     /**
@@ -195,6 +145,7 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager{
      *
      */
     void destroy() {
+        logger.error("Virtual Network Manager is destroyed!");
     }
 
     /**
@@ -204,23 +155,17 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager{
      *
      */
     void start() {
-    	
-    	SwitchStateManager switchStateManager = null;
-    	OFEventManager ofEventManager = null;
-    	VnmServicePojo services = null;
-    	logger.info("Virtual Network Manager is started!");
-    	
+
+        SwitchStateManager switchStateManager = null;
+        VnmServicePojo services = null;
+        logger.info("Virtual Network Manager is started!");
+
+    	logger.info("Initializing Services Pojo!");
     	services = new VnmServicePojo();
-    	
-        logger.info("Initializing Switch State Manager!");
-        switchStateManager = new SwitchStateManager();
-        switchStateManager.setServices(services);
-        controller.addSwitchStateListener(switchStateManager);
-        
-        logger.info("Initializing OF Event Manager ");
-        ofEventManager = new OFEventManager();
-        ofEventManager.setServices(services);
-        ofEventManager.registerMessageHandlers();
+    	services.setDataPacketService(dataPacketService);
+    	services.setFlowProgrammer(flowProgrammer);
+    	services.setSwitchManager(switchManager);
+
     }
 
     /**
@@ -233,111 +178,110 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager{
         logger.info("Stopped");
     }
 
-    private void floodPacket(RawPacket inPkt) {
-        NodeConnector incoming_connector = inPkt.getIncomingNodeConnector();
-        Node incoming_node = incoming_connector.getNode();
 
-        Set<NodeConnector> nodeConnectors =
-                this.switchManager.getUpNodeConnectors(incoming_node);
+    /* InventoryListener service Interface - internal use only, not exposed */
 
-        for (NodeConnector p : nodeConnectors) {
-            if (!p.equals(incoming_connector)) {
-                try {
-                    RawPacket destPkt = new RawPacket(inPkt);
-                    destPkt.setOutgoingNodeConnector(p);
-                    this.dataPacketService.transmitDataPacket(destPkt);
-                } catch (ConstructionException e2) {
-                    continue;
-                }
-            }
+	@Override
+	public void notifyNode(Node node, UpdateType type, Map<String, Property> propMap) {
+		// TODO Auto-generated method stub
+		//logger.info("notifyNode: Type " + type);
+
+        if (node == null) {
+            logger.warn("New Node Notification : Node is null ");
+            return;
         }
-    }
-
-
-/*
-    @Override
-    public PacketResult receiveDataPacket(RawPacket inPkt) {
- 
-    	logger.info("Packet Received: " + inPkt);
-    	
-    	if (inPkt == null) {
-    		logger.info("<<<<<<>>>>>>>  Packet Received: Null ");
-            return PacketResult.IGNORED;
+        /* We only support OpenFlow switches for now */
+        if (node.getType().equals(Node.NodeIDType.OPENFLOW)) {
+            logger.info("OpenFlow node {} added", node);
+            return;
         }
+	}
 
-        NodeConnector incoming_connector = inPkt.getIncomingNodeConnector();
+	@Override
+	public void notifyNodeConnector(NodeConnector nodeConnector, UpdateType type, Map<String, Property> propMap) {
+		// TODO Auto-generated method stub
+		//logger.info("notifyNodeConnector: Type " + type);
 
-        // Hub implementation
-        logger.info("<<<<<<>>>>>>> State of Switch: " + function);
-        if (function.equals("hub")) {
-        	floodPacket(inPkt);
-        } else {
-            Packet formattedPak = this.dataPacketService.decodeDataPacket(inPkt);
-            if (!(formattedPak instanceof Ethernet)) {
-                return PacketResult.IGNORED;
-            }
-
-            logger.info("learning Source MAC: setting incoming connector for the source MAC");
-            learnSourceMAC(formattedPak, incoming_connector);
-            NodeConnector outgoing_connector = 
-                knowDestinationMAC(formattedPak);
-            if (outgoing_connector == null) {
-            	logger.info("<<<<<<>>>>>>>  No outgoing connector for the MAC: Flooding packet: " + inPkt);
-                floodPacket(inPkt);
-            } else {
-            	logger.info("<<<<<<>>>>>>>  Outgoing connector Found for the MAC: Set flow and transmit: " + inPkt);
-                if (!programFlow(formattedPak, incoming_connector,
-                            outgoing_connector)) {
-                    return PacketResult.IGNORED;
-                }
-                inPkt.setOutgoingNodeConnector(outgoing_connector);
-                this.dataPacketService.transmitDataPacket(inPkt);
-            }
+        if (nodeConnector == null) {
+            logger.warn("New NodeConnector Notification : NodeConnector is null");
+            return;
         }
-        return PacketResult.CONSUME;
-    }
-*/
-    private void learnSourceMAC(Packet formattedPak, NodeConnector incoming_connector) {
-        byte[] srcMAC = ((Ethernet)formattedPak).getSourceMACAddress();
-        long srcMAC_val = BitBufferHelper.toNumber(srcMAC);
-        this.mac_to_port.put(srcMAC_val, incoming_connector);
-    }
+        Node node = nodeConnector.getNode();
+        //this.logNodeInfo(node, propMap);
 
-    private NodeConnector knowDestinationMAC(Packet formattedPak) {
-        byte[] dstMAC = ((Ethernet)formattedPak).getDestinationMACAddress();
-        long dstMAC_val = BitBufferHelper.toNumber(dstMAC);
-        return this.mac_to_port.get(dstMAC_val) ;
-    }
+        switch (type) {
+        case ADDED:
+           logger.info("NodeConnector {} for node {} added ", nodeConnector, node);
+           break;
 
-    private boolean programFlow(Packet formattedPak, 
-            NodeConnector incoming_connector, 
-            NodeConnector outgoing_connector) {
-        byte[] dstMAC = ((Ethernet)formattedPak).getDestinationMACAddress();
+        case CHANGED:
+            logger.info("NodeConnector {} for node {} changed ", nodeConnector, node);
+            break;
 
-        Match match = new Match();
-        match.setField( new MatchField(MatchType.IN_PORT, incoming_connector) );
-        match.setField( new MatchField(MatchType.DL_DST, dstMAC.clone()) );
+        case REMOVED:
+            logger.info("NodeConnector {} for node {} removed", nodeConnector, node);
+            break;
 
-        List<Action> actions = new ArrayList<Action>();
-        actions.add(new Output(outgoing_connector));
-
-        Flow f = new Flow(match, actions);
-        f.setIdleTimeout((short)5);
-
-        // Modify the flow on the network node
-        Node incoming_node = incoming_connector.getNode();
-        Status status = flowProgrammer.addFlow(incoming_node, f);
-
-        if (!status.isSuccess()) {
-            logger.warn("SDN Plugin failed to program the flow: {}. The failure is: {}",
-                    f, status.getDescription());
-            return false;
-        } else {
-            return true;
+        default:
+            logger.info("Unknown NodeConnector type received : " + type);
+            break;
         }
-    }
-    
-    public void createVN(){
-    	logger.info("VN created by VNM!");
-    }
+	}
+
+
+	/* VirtualNetworkManager service Interface - exposed as a service */
+
+	@Override
+	public void addSwitch(VNMSwitch vswitch) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void deleteSWitch(VNMSwitch vnode) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void updateSwitch(VNMSwitch vswitch) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void addNode(VNMNode vnode) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void updateNode(VNMNode vnode) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void deleteNode(VNMNode vnode) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void addTunnel(VNMSwitch vswitch, VNMTunnel vtunnel) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void updateTunnel(VNMSwitch vswitch, VNMTunnel vtunnel) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void deleteTunnel(VNMTunnel vtunnel) {
+		// TODO Auto-generated method stub
+
+	}
 }
