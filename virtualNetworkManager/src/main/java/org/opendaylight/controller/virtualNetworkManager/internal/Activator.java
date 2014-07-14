@@ -17,6 +17,7 @@ import org.opendaylight.controller.forwardingrulesmanager.IForwardingRulesManage
 import org.opendaylight.controller.sal.core.ComponentActivatorAbstractBase;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
 import org.opendaylight.controller.sal.packet.IDataPacketService;
+import org.opendaylight.controller.sal.packet.IListenDataPacket;
 import org.opendaylight.controller.statisticsmanager.IStatisticsManager;
 import org.opendaylight.controller.switchmanager.IInventoryListener;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
@@ -88,7 +89,7 @@ public class Activator extends ComponentActivatorAbstractBase {
 
         	Dictionary<String, String> props = new Hashtable<String, String>();
         	props.put("salListenerName", "VirtualNetworkManager");
-        	c.setInterface(new String[] { IVirtualNetworkManager.class.getName(), IInventoryListener.class.getName()}, props);
+        	c.setInterface(new String[] { IVirtualNetworkManager.class.getName(), IInventoryListener.class.getName(), IListenDataPacket.class.getName()}, props);
 
             logger.info("Registering dependent services");
 
@@ -114,12 +115,6 @@ public class Activator extends ComponentActivatorAbstractBase {
             c.add(createServiceDependency().setService(IStatisticsManager.class)
                     .setCallbacks("setStatisticsManager", "unsetStatisticsManager").setRequired(true));
 
-            /* Goodbye IController: we don't need you for now. We have got everything Sal and IInventoryListener ;)
-            c.add(createServiceDependency()
-                    .setService(IController.class, "(name=Controller)")
-                    .setCallbacks("setControllerService", "unsetControllerService")
-                    .setRequired(true));
-            */
         }
     }
 

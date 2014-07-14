@@ -26,11 +26,14 @@ import org.opendaylight.controller.sal.core.Property;
 import org.opendaylight.controller.sal.core.UpdateType;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
 import org.opendaylight.controller.sal.packet.IDataPacketService;
+import org.opendaylight.controller.sal.packet.IListenDataPacket;
+import org.opendaylight.controller.sal.packet.PacketResult;
+import org.opendaylight.controller.sal.packet.RawPacket;
 import org.opendaylight.controller.statisticsmanager.IStatisticsManager;
 import org.opendaylight.controller.switchmanager.IInventoryListener;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
 import org.opendaylight.controller.virtualNetworkManager.core.IVirtualNetworkManager;
-import org.opendaylight.controller.virtualNetworkManager.core.VNMNode;
+import org.opendaylight.controller.virtualNetworkManager.core.VNMPort;
 import org.opendaylight.controller.virtualNetworkManager.core.VNMSwitch;
 import org.opendaylight.controller.virtualNetworkManager.core.VNMTunnel;
 import org.osgi.framework.Bundle;
@@ -40,7 +43,7 @@ import org.osgi.framework.FrameworkUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInventoryListener{
+public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInventoryListener, IListenDataPacket{
 
 	private static final Logger logger = LoggerFactory
             .getLogger(VirtualNetworkManagerImpl.class);
@@ -49,6 +52,7 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
     private IDataPacketService dataPacketService = null;
     private IForwardingRulesManager forwardingRulesManager = null;
 	private IStatisticsManager statManager = null;
+	private SwitchStateManager switchStateManager = null;
 
 	public VirtualNetworkManagerImpl() {
 		super();
@@ -156,7 +160,6 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
      */
     void start() {
 
-        SwitchStateManager switchStateManager = null;
         VnmServicePojo services = null;
         logger.info("Virtual Network Manager is started!");
 
@@ -166,6 +169,8 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
     	services.setFlowProgrammer(flowProgrammer);
     	services.setSwitchManager(switchManager);
 
+    	switchStateManager = new SwitchStateManager();
+    	switchStateManager.setServices(services);
     }
 
     /**
@@ -192,8 +197,14 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
         }
         /* We only support OpenFlow switches for now */
         if (node.getType().equals(Node.NodeIDType.OPENFLOW)) {
-            logger.info("OpenFlow node {} added", node);
-            return;
+            logger.info("OpenFlow node {} notification", node);
+            if(switchStateManager != null){
+            	switchStateManager.switchChanged(node, type, propMap);
+            	return;
+            }
+            else {
+            	logger.error("switchStateManager is not initialised - should be initialised to process node notification!");
+            }
         }
 	}
 
@@ -228,6 +239,15 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
         }
 	}
 
+	/* IListenDataPacket services Interface - internal use only, not exposed */
+
+	@Override
+	public PacketResult receiveDataPacket(RawPacket pkt) {
+		// TODO Auto-generated method stub
+		logger.warn("New Unexpected Data Packet Received by VNM !");
+		logger.info("Packet Details: " + pkt.toString());
+		return null;
+	}
 
 	/* VirtualNetworkManager service Interface - exposed as a service */
 
@@ -250,19 +270,19 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 	}
 
 	@Override
-	public void addNode(VNMNode vnode) {
+	public void addNode(VNMPort vnode) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void updateNode(VNMNode vnode) {
+	public void updateNode(VNMPort vnode) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void deleteNode(VNMNode vnode) {
+	public void deleteNode(VNMPort vnode) {
 		// TODO Auto-generated method stub
 
 	}
@@ -284,4 +304,7 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 		// TODO Auto-generated method stub
 
 	}
+
+
+
 }

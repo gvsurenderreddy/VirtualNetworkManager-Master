@@ -33,6 +33,7 @@
               org.opendaylight.controller.sal.core,
               org.opendaylight.controller.sal.packet,
               org.opendaylight.controller.sal.flowprogrammer,
+              org.opendaylight.controller.sal.reader,
               org.opendaylight.controller.forwardingrulesmanager,
               org.opendaylight.controller.switchmanager,
               org.opendaylight.controller.statisticsmanager,
