@@ -3,15 +3,16 @@ package org.opendaylight.controller.virtualNetworkManager.internal;
 import java.util.Map;
 
 import org.opendaylight.controller.sal.core.Node;
+import org.opendaylight.controller.sal.core.NodeConnector;
 import org.opendaylight.controller.sal.core.Property;
 import org.opendaylight.controller.sal.core.UpdateType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SwitchStateManager{
+public class SwitchEventManager{
 
 	private static final Logger logger = LoggerFactory
-            .getLogger(SwitchStateManager.class);
+            .getLogger(SwitchEventManager.class);
 	private VnmServicePojo services = null;
 
 
@@ -67,6 +68,29 @@ public class SwitchStateManager{
 	        	break;
         	default:
         		logger.warn("Unknown Type OpenFlow Switch Change Info has reached to VNM!");
+        }
+	}
+
+	public void portChanged(NodeConnector nodeConnector, UpdateType type){
+		Node node = nodeConnector.getNode();
+        //this.logNodeInfo(node, propMap);
+
+        switch (type) {
+	        case ADDED:
+	           logger.info("NodeConnector {} for node {} added ", nodeConnector, node);
+	           break;
+
+	        case CHANGED:
+	            logger.info("NodeConnector {} for node {} changed ", nodeConnector, node);
+	            break;
+
+	        case REMOVED:
+	            logger.info("NodeConnector {} for node {} removed", nodeConnector, node);
+	            break;
+
+	        default:
+	            logger.info("Unknown NodeConnector type received : " + type);
+	            break;
         }
 	}
 

@@ -25,8 +25,10 @@ import org.opendaylight.controller.sal.core.NodeConnector;
 import org.opendaylight.controller.sal.core.Property;
 import org.opendaylight.controller.sal.core.UpdateType;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
+import org.opendaylight.controller.sal.match.Match;
 import org.opendaylight.controller.sal.packet.IDataPacketService;
 import org.opendaylight.controller.sal.packet.IListenDataPacket;
+import org.opendaylight.controller.sal.packet.Packet;
 import org.opendaylight.controller.sal.packet.PacketResult;
 import org.opendaylight.controller.sal.packet.RawPacket;
 import org.opendaylight.controller.statisticsmanager.IStatisticsManager;
@@ -47,12 +49,14 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 
 	private static final Logger logger = LoggerFactory
             .getLogger(VirtualNetworkManagerImpl.class);
-    private ISwitchManager switchManager = null;
+    /* External services */
+	private ISwitchManager switchManager = null;
     private IFlowProgrammerService flowProgrammer = null;
     private IDataPacketService dataPacketService = null;
     private IForwardingRulesManager forwardingRulesManager = null;
 	private IStatisticsManager statManager = null;
-	private SwitchStateManager switchStateManager = null;
+	/* Internal services */
+	private SwitchEventManager switchStateManager = null;
 
 	public VirtualNetworkManagerImpl() {
 		super();
@@ -169,7 +173,7 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
     	services.setFlowProgrammer(flowProgrammer);
     	services.setSwitchManager(switchManager);
 
-    	switchStateManager = new SwitchStateManager();
+    	switchStateManager = new SwitchEventManager();
     	switchStateManager.setServices(services);
     }
 
@@ -212,31 +216,12 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 	public void notifyNodeConnector(NodeConnector nodeConnector, UpdateType type, Map<String, Property> propMap) {
 		// TODO Auto-generated method stub
 		//logger.info("notifyNodeConnector: Type " + type);
-
         if (nodeConnector == null) {
             logger.warn("New NodeConnector Notification : NodeConnector is null");
             return;
         }
-        Node node = nodeConnector.getNode();
-        //this.logNodeInfo(node, propMap);
-
-        switch (type) {
-        case ADDED:
-           logger.info("NodeConnector {} for node {} added ", nodeConnector, node);
-           break;
-
-        case CHANGED:
-            logger.info("NodeConnector {} for node {} changed ", nodeConnector, node);
-            break;
-
-        case REMOVED:
-            logger.info("NodeConnector {} for node {} removed", nodeConnector, node);
-            break;
-
-        default:
-            logger.info("Unknown NodeConnector type received : " + type);
-            break;
-        }
+        logger.warn("New NodeConnector Notification : {}",nodeConnector);
+        switchStateManager.portChanged(nodeConnector, type);
 	}
 
 	/* IListenDataPacket services Interface - internal use only, not exposed */
@@ -244,8 +229,12 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 	@Override
 	public PacketResult receiveDataPacket(RawPacket pkt) {
 		// TODO Auto-generated method stub
+		Packet formattedPacket = null;
+		Match packetMatch = null;
 		logger.warn("New Unexpected Data Packet Received by VNM !");
-		logger.info("Packet Details: " + pkt.toString());
+		logger.info("Packet Details: ");
+		formattedPacket = this.dataPacketService.decodeDataPacket(pkt);
+		// http://archive.openflow.org/wk/?title=OpenDayLight_Tutorial
 		return null;
 	}
 
