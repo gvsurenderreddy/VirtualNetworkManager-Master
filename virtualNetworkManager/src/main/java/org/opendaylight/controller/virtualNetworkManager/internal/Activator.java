@@ -21,7 +21,7 @@ import org.opendaylight.controller.sal.packet.IListenDataPacket;
 import org.opendaylight.controller.statisticsmanager.IStatisticsManager;
 import org.opendaylight.controller.switchmanager.IInventoryListener;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
-import org.opendaylight.controller.virtualNetworkManager.core.IVirtualNetworkManager;
+import org.opendaylight.controller.virtualNetworkManager.IVirtualNetworkManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

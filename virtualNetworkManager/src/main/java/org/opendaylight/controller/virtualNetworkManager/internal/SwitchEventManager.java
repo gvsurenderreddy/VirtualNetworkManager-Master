@@ -6,17 +6,19 @@ import org.opendaylight.controller.sal.core.Node;
 import org.opendaylight.controller.sal.core.NodeConnector;
 import org.opendaylight.controller.sal.core.Property;
 import org.opendaylight.controller.sal.core.UpdateType;
+import org.opendaylight.controller.virtualNetworkManager.objectStore.TopologyTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SwitchEventManager{
 
+	/* Internal Globals */
 	private static final Logger logger = LoggerFactory
             .getLogger(SwitchEventManager.class);
+
+	/* Internal Project Globals */
 	private VnmServicePojo services = null;
-
-
-
+	private TopologyTree topoTree = null;
 
 	public VnmServicePojo getServices() {
 		return services;
@@ -24,6 +26,14 @@ public class SwitchEventManager{
 
 	public void setServices(VnmServicePojo services) {
 		this.services = services;
+	}
+
+	public TopologyTree getTopoTree() {
+		return topoTree;
+	}
+
+	public void setTopoTree(TopologyTree topoTree) {
+		this.topoTree = topoTree;
 	}
 
 	public void switchAdded(Node node) {
@@ -42,7 +52,7 @@ public class SwitchEventManager{
 
 	public void switchChanged(Node node, UpdateType type, Map<String, Property> propMap) {
 		// TODO Auto-generated method stub
-		final String vnmSwitchId = node.getNodeIDString();
+		//final String vnmSwitchId = node.getNodeIDString();
 		//VNMSwitch opfSwitch = getOPFSwitchById(opfSwitchId);
 		switch (type) {
         	case ADDED:
@@ -93,6 +103,7 @@ public class SwitchEventManager{
 	            break;
         }
 	}
+
 
 
 }

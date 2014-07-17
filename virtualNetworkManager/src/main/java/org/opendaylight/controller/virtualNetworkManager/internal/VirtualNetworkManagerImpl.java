@@ -34,35 +34,46 @@ import org.opendaylight.controller.sal.packet.RawPacket;
 import org.opendaylight.controller.statisticsmanager.IStatisticsManager;
 import org.opendaylight.controller.switchmanager.IInventoryListener;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
-import org.opendaylight.controller.virtualNetworkManager.core.IVirtualNetworkManager;
-import org.opendaylight.controller.virtualNetworkManager.core.VNMPort;
-import org.opendaylight.controller.virtualNetworkManager.core.VNMSwitch;
-import org.opendaylight.controller.virtualNetworkManager.core.VNMTunnel;
-import org.osgi.framework.Bundle;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.BundleException;
-import org.osgi.framework.FrameworkUtil;
+import org.opendaylight.controller.virtualNetworkManager.IVirtualNetworkManager;
+import org.opendaylight.controller.virtualNetworkManager.objectStore.SliceTree;
+import org.opendaylight.controller.virtualNetworkManager.objectStore.TopologyTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInventoryListener, IListenDataPacket{
 
+	/* Internal Global */
+	int thread_no = 0;
 	private static final Logger logger = LoggerFactory
             .getLogger(VirtualNetworkManagerImpl.class);
-    /* External services */
+
+	/* External services */
 	private ISwitchManager switchManager = null;
     private IFlowProgrammerService flowProgrammer = null;
     private IDataPacketService dataPacketService = null;
     private IForwardingRulesManager forwardingRulesManager = null;
 	private IStatisticsManager statManager = null;
-	/* Internal services */
-	private SwitchEventManager switchStateManager = null;
 
+	/* Internal Project Globals */
+	private VnmServicePojo services = null;
+	private SliceTree sliceTree = null;
+	private TopologyTree topoTree = null;
+
+	/* Internal Modules */
+	private SwitchEventManager switchEventManager = null;
+	private SliceManager sliceManager = null;
+	private FlowManager flowManager = null;
+	private OverlayNetworkManager overlayNetworkManager = null;
+
+
+
+	/* Default Constructor */
 	public VirtualNetworkManagerImpl() {
 		super();
 		logger.info("Vnm getting instancetiated");
 	}
 
+	/* Setter and UnSetter of External Services */
 	void setDataPacketService(IDataPacketService s) {
     	logger.info("Datapacketservice set");
         this.dataPacketService = s;
@@ -124,6 +135,9 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
         }
     }
 
+
+    /* Function to be called by ODL */
+
     /**
      * Function called by the dependency manager when all the required
      * dependencies are satisfied
@@ -131,18 +145,41 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
      */
     void init() {
     	logger.info("Vnm getting Initilizing by Dependency Manager!");
-        // Disabling the SimpleForwarding and ARPHandler bundle to not conflict with this one
-        BundleContext bundleContext = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
-        for(Bundle bundle : bundleContext.getBundles()) {
-            if (bundle.getSymbolicName().contains("simpleforwarding")) {
-                try {
-                	logger.info("Uninstalling Bundle:'simpleforwarding' to avoid conflict!");
-                    bundle.uninstall();
-                } catch (BundleException e) {
-                    logger.warn("Exception in Bundle uninstall: "+bundle.getSymbolicName(), e);
-                }
-            }
-        }
+
+    	logger.info("Initializing Services Pojo!");
+    	services = new VnmServicePojo();
+    	services.setDataPacketService(dataPacketService);
+    	services.setFlowProgrammer(flowProgrammer);
+    	services.setSwitchManager(switchManager);
+
+    	logger.info("Initializing Slice Tree!");
+    	sliceTree = SliceTree.init();
+
+    	logger.info("Initializing Topology Tree!");
+    	topoTree = TopologyTree.init();
+
+    	logger.info("Initializing Switch Event Manager!");
+    	switchEventManager = new SwitchEventManager();
+    	switchEventManager.setServices(services);
+    	switchEventManager.setTopoTree(topoTree);
+
+    	logger.info("Initializing Flow Manager!");
+    	flowManager = new FlowManager();
+    	flowManager.setServices(services);
+    	flowManager.setTopoTree(topoTree);
+
+    	logger.info("Initializing Overlay Network Manager!");
+    	overlayNetworkManager = new OverlayNetworkManager();
+
+    	logger.info("Initializing Slice Manager!");
+    	sliceManager = new SliceManager();
+    	sliceManager.setServices(services);
+    	sliceManager.setSliceTree(sliceTree);
+    	sliceManager.setTopoTree(topoTree);
+    	/*
+    	sliceManager.setFlowManager(flowManager);
+    	sliceManager.setOverLayManager()
+    	 */
 
     }
 
@@ -163,18 +200,9 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
      *
      */
     void start() {
+    	logger.info("Virtual Network Manager is started!");
 
-        VnmServicePojo services = null;
-        logger.info("Virtual Network Manager is started!");
 
-    	logger.info("Initializing Services Pojo!");
-    	services = new VnmServicePojo();
-    	services.setDataPacketService(dataPacketService);
-    	services.setFlowProgrammer(flowProgrammer);
-    	services.setSwitchManager(switchManager);
-
-    	switchStateManager = new SwitchEventManager();
-    	switchStateManager.setServices(services);
     }
 
     /**
@@ -186,6 +214,7 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
     void stop() {
         logger.info("Stopped");
     }
+
 
 
     /* InventoryListener service Interface - internal use only, not exposed */
@@ -202,8 +231,8 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
         /* We only support OpenFlow switches for now */
         if (node.getType().equals(Node.NodeIDType.OPENFLOW)) {
             logger.info("OpenFlow node {} notification", node);
-            if(switchStateManager != null){
-            	switchStateManager.switchChanged(node, type, propMap);
+            if(switchEventManager != null){
+            	switchEventManager.switchChanged(node, type, propMap);
             	return;
             }
             else {
@@ -221,8 +250,10 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
             return;
         }
         logger.warn("New NodeConnector Notification : {}",nodeConnector);
-        switchStateManager.portChanged(nodeConnector, type);
+        switchEventManager.portChanged(nodeConnector, type);
 	}
+
+
 
 	/* IListenDataPacket services Interface - internal use only, not exposed */
 
@@ -238,62 +269,51 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 		return null;
 	}
 
+
+
 	/* VirtualNetworkManager service Interface - exposed as a service */
 
 	@Override
-	public void addSwitch(VNMSwitch vswitch) {
+	public void testVnm() {
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		int i = 0;
+		this.thread_no += 1;
+		while(i < 50){
+			try {
+				Thread.sleep(2);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				logger.error("Sleep error");
+			}
+			logger.info("I'm thread " + this.thread_no + " printing : " + i);
+			i++;
+		}
+	}
+
+	@Override
+	public void addSlice(int sliceId, String desc) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void deleteSWitch(VNMSwitch vnode) {
+	public void addSwitchToSlice(int sliceId, String dataPathId, String name,
+			String port, String desc) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void updateSwitch(VNMSwitch vswitch) {
+	public void addPortToSwitch(String dataPathId, String MAC, String desc) {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void addNode(VNMPort vnode) {
+	public void registerAgentToSwitch(String dataPathId, String agentUri) {
 		// TODO Auto-generated method stub
 
 	}
-
-	@Override
-	public void updateNode(VNMPort vnode) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void deleteNode(VNMPort vnode) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void addTunnel(VNMSwitch vswitch, VNMTunnel vtunnel) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void updateTunnel(VNMSwitch vswitch, VNMTunnel vtunnel) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void deleteTunnel(VNMTunnel vtunnel) {
-		// TODO Auto-generated method stub
-
-	}
-
-
 
 }

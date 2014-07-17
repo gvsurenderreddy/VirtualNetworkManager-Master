@@ -1,4 +1,4 @@
-package org.opendaylight.controller.virtualNetworkManager.core;
+package org.opendaylight.controller.virtualNetworkManager.objectStore;
 
 import java.net.InetAddress;
 import java.util.ArrayList;

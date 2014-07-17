@@ -1,4 +1,4 @@
-package org.opendaylight.controller.virtualNetworkManager.core;
+package org.opendaylight.controller.virtualNetworkManager.objectStore;
 
 public class VNMPort {
 	private String objectId = "";

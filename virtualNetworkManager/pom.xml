@@ -45,8 +45,8 @@
               org.osgi.service.log,
             </Import-Package>
             <Export-Package>
-              org.opendaylight.controller.virtualNetworkManager,
-              org.opendaylight.controller.virtualNetworkManager.core
+              org.opendaylight.controller.virtualNetworkManager.internal,
+              org.opendaylight.controller.virtualNetworkManager
             </Export-Package>
             <Bundle-Activator>
               org.opendaylight.controller.virtualNetworkManager.internal.Activator
