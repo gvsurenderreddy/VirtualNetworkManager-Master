@@ -6,7 +6,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.codehaus.jettison.json.JSONException;
 
 public class TunnelAddRequest extends JsonRequest {
 
@@ -17,7 +16,7 @@ public class TunnelAddRequest extends JsonRequest {
 			/* Add broadcast address */
 			super.jsonObj.accumulate("broadcast", address);
 			super.jsonString = super.jsonObj.toString();
-		} catch (JSONException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

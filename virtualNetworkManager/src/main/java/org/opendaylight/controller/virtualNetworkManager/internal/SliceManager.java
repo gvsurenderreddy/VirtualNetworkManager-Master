@@ -1,5 +1,6 @@
 package org.opendaylight.controller.virtualNetworkManager.internal;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.opendaylight.controller.virtualNetworkManager.objectStore.Slice;
@@ -8,6 +9,8 @@ import org.opendaylight.controller.virtualNetworkManager.objectStore.SliceSwitch
 import org.opendaylight.controller.virtualNetworkManager.objectStore.SliceTree;
 import org.opendaylight.controller.virtualNetworkManager.objectStore.Switch;
 import org.opendaylight.controller.virtualNetworkManager.objectStore.SwitchAgent;
+import org.opendaylight.controller.virtualNetworkManager.objectStore.TopoPort;
+import org.opendaylight.controller.virtualNetworkManager.objectStore.TopoSwitch;
 import org.opendaylight.controller.virtualNetworkManager.objectStore.TopologyTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +22,8 @@ public class SliceManager implements InternalModule{
             .getLogger(SliceManager.class);
 	private HashMap<String, InternalModule> modules = null;
 	private final String broadcast_address = "100.10.0.1";
+	/* Statically defined wait time should be changed */
+	private final long timeOut = 1000;
 
 	/* Internal Project Globals */
 	private VnmServicePojo services = null;
@@ -122,6 +127,7 @@ public class SliceManager implements InternalModule{
 
 		OverlayNetworkManager overlayNetworkManager = (OverlayNetworkManager)modules.get(Module.OverlayNetworkManager.toString());
 		FlowManager flowManager = (FlowManager)modules.get(Module.FlowManager.toString());
+		TopoPort tPort = null;
 
 		/* Get slice to Slice Tree */
 		Slice slice = sliceTree.getSlice(sliceId);
@@ -166,6 +172,8 @@ public class SliceManager implements InternalModule{
 			return false;
 		}
 
+		/* wait for Port to be appeared */
+		tPort = waitForPort(sliceId, dataPathId);
 		return true;
 	}
 
@@ -185,6 +193,42 @@ public class SliceManager implements InternalModule{
 			swth.setAgent(agent);
 			return true;
 		}
+	}
+
+
+
+	/* Internal function for slice manager */
+
+	/* Wait for to be added in Topology DB */
+	private TopoPort waitForPort(int sliceId, String dataPathId) {
+
+		TopoSwitch swth = topoTree.getSwitch(dataPathId);
+		if(swth == null){
+			logger.error("Switch of Datapath ID (" + dataPathId + ") information not found in Topology Tree <switch might not be connected with ODL> ");
+			return null;
+		}
+		else {
+			while(true){
+				ArrayList<TopoPort> ports = swth.getAllPorts();
+				for(TopoPort port : ports){
+					String portname = generatePortName(sliceId);
+					if(port.getName().equals(portname)){
+						return port;
+					}
+				}
+				try {
+					Thread.sleep(timeOut);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	/* Generate port name which should be added by agent */
+	private String generatePortName(int sliceId){
+		return new String("vxlan" + sliceId);
 	}
 }
 

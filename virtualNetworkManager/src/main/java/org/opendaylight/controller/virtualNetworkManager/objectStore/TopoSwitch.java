@@ -1,5 +1,6 @@
 package org.opendaylight.controller.virtualNetworkManager.objectStore;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.opendaylight.controller.sal.core.Node;
@@ -64,6 +65,11 @@ public class TopoSwitch extends Switch {
 		}
 	}
 
+	public ArrayList<TopoPort> getAllPorts() {
+		// TODO Auto-generated method stub
+		return new ArrayList<TopoPort>(ports.values());
+	}
+
 	/* Method to delete a Port from a switch from Topology Tree */
 	public boolean deletePort(String MAC){
 
@@ -77,5 +83,7 @@ public class TopoSwitch extends Switch {
 			return false;
 		}
 	}
+
+
 
 }

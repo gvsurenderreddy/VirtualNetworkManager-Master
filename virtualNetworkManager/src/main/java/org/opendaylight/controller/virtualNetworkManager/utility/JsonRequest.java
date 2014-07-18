@@ -1,7 +1,8 @@
 package org.opendaylight.controller.virtualNetworkManager.utility;
 
+import net.sf.json.JSONObject;
+
 import org.apache.http.client.ResponseHandler;
-import org.codehaus.jettison.json.JSONObject;
 
 public abstract class JsonRequest {
 
