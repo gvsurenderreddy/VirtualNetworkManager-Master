@@ -46,16 +46,17 @@ public class Slice {
 	}
 
 	/* Method to add a Switch to a specific Slice in Slice Tree */
-	public SliceSwitch addSwitch(String datapathId, String switchName, String desc){
+	public SliceSwitch addSwitch(Switch rawSwitch){
 
 		/* check if the slice object is already in the DB */
-		if(switches.containsKey(datapathId)){
+		if(switches.containsKey(rawSwitch.getDataPathId())){
 			logger.error("Switch already added in SliceTree for Slice: " + VNI);
-			return switches.get(datapathId);
+			//return switches.get(datapathId);
+			return null;
 		}
 		else {
-			SliceSwitch swth = new SliceSwitch(datapathId, switchName, desc);
-			switches.put(datapathId, swth);
+			SliceSwitch swth = new SliceSwitch(rawSwitch);
+			switches.put(rawSwitch.getDataPathId(), swth);
 			return swth;
 		}
 	}

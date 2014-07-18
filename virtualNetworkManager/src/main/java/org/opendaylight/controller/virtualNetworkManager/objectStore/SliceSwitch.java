@@ -6,13 +6,13 @@ import org.opendaylight.controller.virtualNetworkManager.core.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SliceSwitch extends Switch{
+public class SliceSwitch {
 
-	private SwitchAgent agent = null;
     private HashMap<String, SlicePort> ports = null;
     private Operation portAddOperation = null;
+    private Switch swth = null;
 
-    private static final Logger logger = LoggerFactory
+	private static final Logger logger = LoggerFactory
     .getLogger(SliceTree.class);
 
 
@@ -23,26 +23,18 @@ public class SliceSwitch extends Switch{
 	}
 	*/
 
-	public SliceSwitch(String dataPathId, String name, String desc) {
-		super(dataPathId, name, desc);
+	public SliceSwitch(Switch swth) {
+		this.swth = swth;
 		this.ports = new HashMap<String, SlicePort>();
 	}
 
-
-	public SwitchAgent getAgent() {
-		return agent;
-	}
-
-	public void setAgent(SwitchAgent agent) {
-		this.agent = agent;
-	}
 
 	/* Interface to add port to a switch for a specific slice in Slice Tree */
 	public SlicePort addPort(String MAC, String desc){
 
 		/* Check if Port is already attached in switch */
 		if(ports.containsKey(MAC)){
-			logger.error("Port of MAC: (" + MAC + ") is already added in SliceTree for Switch: " + getDataPathId());
+			logger.error("Port of MAC: (" + MAC + ") is already added in SliceTree for Switch: " + swth.getDataPathId());
 			return ports.get(MAC);
 		}
 		else {
@@ -60,7 +52,7 @@ public class SliceSwitch extends Switch{
 			return ports.get(MAC);
 		}
 		else {
-			logger.error("No port found for MAC: (" + MAC + ") in switch: " + getDataPathId());
+			logger.error("No port found for MAC: (" + MAC + ") in switch: " + swth.getDataPathId());
 			return null;
 		}
 	}
@@ -75,7 +67,7 @@ public class SliceSwitch extends Switch{
 			return true;
 		}
 		else {
-			logger.error("No port found for MAC: (" + MAC + ") in switch: " + getDataPathId());
+			logger.error("No port found for MAC: (" + MAC + ") in switch: " + swth.getDataPathId());
 			return false;
 		}
 	}
@@ -86,6 +78,10 @@ public class SliceSwitch extends Switch{
 
 	public void setPortAddOperation(Operation portAddOperation) {
 		this.portAddOperation = portAddOperation;
+	}
+
+    public Switch getSwth() {
+		return swth;
 	}
 
 }

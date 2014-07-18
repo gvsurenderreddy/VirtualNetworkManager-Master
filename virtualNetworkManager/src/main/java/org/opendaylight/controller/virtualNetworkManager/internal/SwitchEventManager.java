@@ -1,5 +1,6 @@
 package org.opendaylight.controller.virtualNetworkManager.internal;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.opendaylight.controller.sal.core.Node;
@@ -10,15 +11,20 @@ import org.opendaylight.controller.virtualNetworkManager.objectStore.TopologyTre
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SwitchEventManager{
+public class SwitchEventManager implements InternalModule{
 
 	/* Internal Globals */
 	private static final Logger logger = LoggerFactory
             .getLogger(SwitchEventManager.class);
+	private HashMap<String, InternalModule> modules = null;
 
 	/* Internal Project Globals */
 	private VnmServicePojo services = null;
 	private TopologyTree topoTree = null;
+
+
+
+	/* Initializing Function */
 
 	public VnmServicePojo getServices() {
 		return services;
@@ -35,6 +41,21 @@ public class SwitchEventManager{
 	public void setTopoTree(TopologyTree topoTree) {
 		this.topoTree = topoTree;
 	}
+
+	public void setModule(HashMap<String, InternalModule> modules) {
+		// TODO Auto-generated method stub
+		this.modules = modules;
+		logger.info("Module size: " + modules.size());
+	}
+
+	/* Module specific dependency checker */
+	@Override
+	public boolean checkModuleDependency(HashMap<String, InternalModule> modules){
+		return true;
+	}
+
+
+	/* Feature Functions */
 
 	public void switchAdded(Node node) {
 		// TODO Auto-generated method stub
@@ -103,6 +124,8 @@ public class SwitchEventManager{
 	            break;
         }
 	}
+
+
 
 
 

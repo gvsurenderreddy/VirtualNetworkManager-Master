@@ -17,6 +17,7 @@
 
 package org.opendaylight.controller.virtualNetworkManager.internal;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.opendaylight.controller.forwardingrulesmanager.IForwardingRulesManager;
@@ -43,9 +44,10 @@ import org.slf4j.LoggerFactory;
 public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInventoryListener, IListenDataPacket{
 
 	/* Internal Global */
-	int thread_no = 0;
 	private static final Logger logger = LoggerFactory
             .getLogger(VirtualNetworkManagerImpl.class);
+	int thread_no = 0;
+	private HashMap<String, InternalModule> modules = null;	// Internal Modules
 
 	/* External services */
 	private ISwitchManager switchManager = null;
@@ -152,6 +154,11 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
     	services.setFlowProgrammer(flowProgrammer);
     	services.setSwitchManager(switchManager);
 
+    	logger.info("Initializing Module Map!");
+    	modules = new HashMap<String, InternalModule>();
+    	/* YAON is not a module but a module activator */
+    	//modules.put("YOAN", this);
+
     	logger.info("Initializing Slice Tree!");
     	sliceTree = SliceTree.init();
 
@@ -162,24 +169,40 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
     	switchEventManager = new SwitchEventManager();
     	switchEventManager.setServices(services);
     	switchEventManager.setTopoTree(topoTree);
+    	switchEventManager.setModule(modules);
+    	if (!switchEventManager.checkModuleDependency(modules)){
+    		logger.warn("Switch Event Manager Module dependecy not satisfied");
+    	}
+    	modules.put(Module.SwitchEventManager.toString(), switchEventManager);
 
     	logger.info("Initializing Flow Manager!");
     	flowManager = new FlowManager();
     	flowManager.setServices(services);
     	flowManager.setTopoTree(topoTree);
+    	flowManager.setModule(modules);
+    	if(!flowManager.checkModuleDependency(modules)){
+    		logger.warn("Flow Manager Module dependecy not satisfied");
+    	}
+    	modules.put(Module.FlowManager.toString(), flowManager);
 
     	logger.info("Initializing Overlay Network Manager!");
     	overlayNetworkManager = new OverlayNetworkManager();
+    	overlayNetworkManager.setModules(modules);
+    	if(!overlayNetworkManager.checkModuleDependency(modules)){
+    		logger.warn("Overlay Network Manager Module dependecy not satisfied");
+    	}
+    	modules.put(Module.OverlayNetworkManager.toString(), overlayNetworkManager);
 
     	logger.info("Initializing Slice Manager!");
     	sliceManager = new SliceManager();
     	sliceManager.setServices(services);
     	sliceManager.setSliceTree(sliceTree);
     	sliceManager.setTopoTree(topoTree);
-    	/*
-    	sliceManager.setFlowManager(flowManager);
-    	sliceManager.setOverLayManager()
-    	 */
+    	sliceManager.setModule(modules);
+    	if(!sliceManager.checkModuleDependency(modules)){
+    		logger.warn("Slice Manager Module dependecy not satisfied");
+    	}
+    	modules.put(Module.SliceManager.toString(), sliceManager);
 
     }
 
@@ -292,28 +315,48 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 	}
 
 	@Override
-	public void addSlice(int sliceId, String desc) {
+	public boolean addSlice(int sliceId, String desc) {
 		// TODO Auto-generated method stub
-
+		if(sliceManager.addSlice(sliceId, desc)){
+			logger.info("Slice successfully added !");
+			return true;
+		}
+		logger.info("Slice could not be added !");
+		return false;
 	}
 
 	@Override
-	public void addSwitchToSlice(int sliceId, String dataPathId, String name,
-			String port, String desc) {
+	public boolean addSwitchToSlice(int sliceId, String dataPathId, String name,
+			String desc) {
 		// TODO Auto-generated method stub
-
+		if(sliceManager.addSwitch(sliceId, dataPathId, name, desc)){
+			logger.info("Switch successfully added to Slice !");
+			return true;
+		}
+		logger.info("Switch could not be added to slice !");
+		return false;
 	}
 
 	@Override
-	public void addPortToSwitch(String dataPathId, String MAC, String desc) {
+	public boolean addPortToSwitch(int sliceId, String dataPathId, String MAC, String desc) {
 		// TODO Auto-generated method stub
-
+		if(sliceManager.addPort(sliceId, dataPathId, MAC, desc)){
+			logger.info("Port successfully added to Switch !");
+			return true;
+		}
+		logger.info("Port could not be added to switch !");
+		return true;
 	}
 
 	@Override
-	public void registerAgentToSwitch(String dataPathId, String agentUri) {
+	public boolean registerAgentToSwitch(String dataPathId, String agentUri) {
 		// TODO Auto-generated method stub
-
+		if(sliceManager.addAgent(dataPathId, agentUri)){
+			logger.info("Agent is successfully added to the Switch");
+			return true;
+		}
+		logger.info("Agent could not be added to the Switch");
+		return true;
 	}
 
 }

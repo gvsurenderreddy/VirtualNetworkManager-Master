@@ -5,6 +5,7 @@ public class Switch {
 	private String dataPathId = null;
 	private String name = null;
 	private String desc = null;
+	private SwitchAgent agent = null;
 
 	public Switch(String dataPathId, String name, String desc){
 		this.setDataPathId(dataPathId);
@@ -34,6 +35,14 @@ public class Switch {
 
 	public void setDesc(String desc) {
 		this.desc = desc;
+	}
+
+	public SwitchAgent getAgent() {
+		return agent;
+	}
+
+	public void setAgent(SwitchAgent agent) {
+		this.agent = agent;
 	}
 
 }

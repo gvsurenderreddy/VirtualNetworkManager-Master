@@ -43,6 +43,13 @@
               org.eclipse.osgi.framework.console,
               org.osgi.framework,
               org.osgi.service.log,
+              org.apache.http.client,
+              org.apache.http.util,
+              org.apache.http,
+              org.codehaus.jettison.json,
+              org.apache.http.impl.client,
+              org.apache.http.entity,
+              org.apache.http.client.methods
             </Import-Package>
             <Export-Package>
               org.opendaylight.controller.virtualNetworkManager.internal,
