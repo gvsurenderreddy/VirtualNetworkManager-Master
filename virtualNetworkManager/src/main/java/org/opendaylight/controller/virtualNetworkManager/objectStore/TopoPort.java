@@ -6,6 +6,7 @@ public class TopoPort extends Port {
 
 	private NodeConnector nodeConnector = null;
 	private String name = null;
+	private PortType type = null;
 
 
 	public TopoPort(String MAC, NodeConnector nodeConnector) {
@@ -28,6 +29,14 @@ public class TopoPort extends Port {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public PortType getType() {
+		return type;
+	}
+
+	public void setType(PortType type) {
+		this.type = type;
 	}
 
 }

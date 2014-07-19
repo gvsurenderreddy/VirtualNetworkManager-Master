@@ -26,7 +26,7 @@ public class SliceManager implements InternalModule{
 	private final long timeOut = 1000;
 
 	/* Internal Project Globals */
-	private VnmServicePojo services = null;
+	private ServicePojo services = null;
 	private SliceTree sliceTree = null;
 	private TopologyTree topoTree = null;
 
@@ -34,10 +34,10 @@ public class SliceManager implements InternalModule{
 
 	/* Initializing function */
 
-	public VnmServicePojo getServices() {
+	public ServicePojo getServices() {
 		return services;
 	}
-	public void setServices(VnmServicePojo services) {
+	public void setServices(ServicePojo services) {
 		this.services = services;
 	}
 	public SliceTree getSliceTree() {
@@ -199,7 +199,7 @@ public class SliceManager implements InternalModule{
 
 	/* Internal function for slice manager */
 
-	/* Wait for to be added in Topology DB */
+	/* Wait for port to be added in Topology DB */
 	private TopoPort waitForPort(int sliceId, String dataPathId) {
 
 		TopoSwitch swth = topoTree.getSwitch(dataPathId);

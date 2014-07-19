@@ -14,17 +14,17 @@ public class FlowManager implements InternalModule{
 	private HashMap<String, InternalModule> modules = null;
 
 	/* Internal Project Globals */
-	private VnmServicePojo services = null;
+	private ServicePojo services = null;
 	private TopologyTree topoTree = null;
 
 
 
 	/* Initializing Functions */
 
-	public VnmServicePojo getServices() {
+	public ServicePojo getServices() {
 		return services;
 	}
-	public void setServices(VnmServicePojo services) {
+	public void setServices(ServicePojo services) {
 		this.services = services;
 	}
 	public TopologyTree getTopoTree() {

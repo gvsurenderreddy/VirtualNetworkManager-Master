@@ -57,7 +57,7 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 	private IStatisticsManager statManager = null;
 
 	/* Internal Project Globals */
-	private VnmServicePojo services = null;
+	private ServicePojo services = null;
 	private SliceTree sliceTree = null;
 	private TopologyTree topoTree = null;
 
@@ -149,10 +149,11 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
     	logger.info("Vnm getting Initilizing by Dependency Manager!");
 
     	logger.info("Initializing Services Pojo!");
-    	services = new VnmServicePojo();
+    	services = new ServicePojo();
     	services.setDataPacketService(dataPacketService);
     	services.setFlowProgrammer(flowProgrammer);
     	services.setSwitchManager(switchManager);
+    	services.setStatManager(statManager);
 
     	logger.info("Initializing Module Map!");
     	modules = new HashMap<String, InternalModule>();
@@ -244,8 +245,6 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 
 	@Override
 	public void notifyNode(Node node, UpdateType type, Map<String, Property> propMap) {
-		// TODO Auto-generated method stub
-		//logger.info("notifyNode: Type " + type);
 
         if (node == null) {
             logger.warn("New Node Notification : Node is null ");
@@ -255,25 +254,35 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
         if (node.getType().equals(Node.NodeIDType.OPENFLOW)) {
             logger.info("OpenFlow node {} notification", node);
             if(switchEventManager != null){
-            	switchEventManager.switchChanged(node, type, propMap);
-            	return;
+            	if(switchEventManager.switchChanged(node, type, propMap)){
+            		logger.warn("New Node Notification successfully processed !");
+            	}
+            	else {
+            		logger.error("New Node Notification could not be processed successfully !");
+            	}
             }
             else {
-            	logger.error("switchStateManager is not initialised - should be initialised to process node notification!");
+            	logger.error("Switch Event Manager is not initialised - should be initialised to process node notification!");
             }
         }
 	}
 
 	@Override
 	public void notifyNodeConnector(NodeConnector nodeConnector, UpdateType type, Map<String, Property> propMap) {
-		// TODO Auto-generated method stub
-		//logger.info("notifyNodeConnector: Type " + type);
+
         if (nodeConnector == null) {
             logger.warn("New NodeConnector Notification : NodeConnector is null");
             return;
         }
-        logger.warn("New NodeConnector Notification : {}",nodeConnector);
-        switchEventManager.portChanged(nodeConnector, type);
+
+        /* Check if node connector is special */
+        if(switchManager.isSpecial(nodeConnector)){
+        	logger.info("Ignoreing special node connector: {}", nodeConnector);
+        }
+        else {
+        	switchEventManager.portChanged(nodeConnector, type);
+        }
+        return;
 	}
 
 
@@ -282,13 +291,10 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 
 	@Override
 	public PacketResult receiveDataPacket(RawPacket pkt) {
-		// TODO Auto-generated method stub
+
 		Packet formattedPacket = null;
 		Match packetMatch = null;
 		logger.warn("New Unexpected Data Packet Received by VNM !");
-		logger.info("Packet Details: ");
-		formattedPacket = this.dataPacketService.decodeDataPacket(pkt);
-		// http://archive.openflow.org/wk/?title=OpenDayLight_Tutorial
 		return null;
 	}
 
@@ -298,15 +304,12 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 
 	@Override
 	public void testVnm() {
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
 		int i = 0;
 		this.thread_no += 1;
 		while(i < 50){
 			try {
 				Thread.sleep(2);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				logger.error("Sleep error");
 			}
 			logger.info("I'm thread " + this.thread_no + " printing : " + i);
@@ -316,7 +319,6 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 
 	@Override
 	public boolean addSlice(int sliceId, String desc) {
-		// TODO Auto-generated method stub
 		if(sliceManager.addSlice(sliceId, desc)){
 			logger.info("Slice successfully added !");
 			return true;
@@ -326,9 +328,7 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 	}
 
 	@Override
-	public boolean addSwitchToSlice(int sliceId, String dataPathId, String name,
-			String desc) {
-		// TODO Auto-generated method stub
+	public boolean addSwitchToSlice(int sliceId, String dataPathId, String name, String desc) {
 		if(sliceManager.addSwitch(sliceId, dataPathId, name, desc)){
 			logger.info("Switch successfully added to Slice !");
 			return true;
@@ -339,7 +339,6 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 
 	@Override
 	public boolean addPortToSwitch(int sliceId, String dataPathId, String MAC, String desc) {
-		// TODO Auto-generated method stub
 		if(sliceManager.addPort(sliceId, dataPathId, MAC, desc)){
 			logger.info("Port successfully added to Switch !");
 			return true;
@@ -350,7 +349,6 @@ public class VirtualNetworkManagerImpl implements IVirtualNetworkManager, IInven
 
 	@Override
 	public boolean registerAgentToSwitch(String dataPathId, String agentUri) {
-		// TODO Auto-generated method stub
 		if(sliceManager.addAgent(dataPathId, agentUri)){
 			logger.info("Agent is successfully added to the Switch");
 			return true;

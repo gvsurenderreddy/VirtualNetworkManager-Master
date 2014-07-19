@@ -15,6 +15,7 @@ public class TopoSwitch extends Switch {
             .getLogger(TopologyTree.class);
 
 	private HashMap<String, TopoPort> ports = null;
+	private boolean state = false;
 
 	/*
 	// Default Constructor : Tentative
@@ -37,13 +38,25 @@ public class TopoSwitch extends Switch {
 		this.node = node;
 	}
 
+	public boolean isState() {
+		return state;
+	}
+
+	public void setState(boolean state) {
+		this.state = state;
+	}
+
+	public void setPorts(HashMap<String, TopoPort> overlayPorts) {
+		this.ports = overlayPorts;
+	}
+
 	/* Method to add a Port to a switch in Topology Tree */
-	public TopoPort addPort(String MAC, NodeConnector nodeConnector){
+	public TopoPort addPort(String MAC, NodeConnector nodeConnector, PortType type){
 
 		/* check if the Port object is already in the DB */
 		if(ports.containsKey(MAC)){
 			logger.error("Port for MAC: " + MAC +" already added in Switch: " + this.getDataPathId());
-			return ports.get(MAC);
+			return null;
 		}
 		else {
 			TopoPort port = new TopoPort(MAC, nodeConnector);
@@ -83,7 +96,4 @@ public class TopoSwitch extends Switch {
 			return false;
 		}
 	}
-
-
-
 }
