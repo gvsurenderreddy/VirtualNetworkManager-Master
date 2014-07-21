@@ -3,6 +3,7 @@ package org.opendaylight.controller.virtualNetworkManager.internal;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.opendaylight.controller.virtualNetworkManager.objectStore.PortType;
 import org.opendaylight.controller.virtualNetworkManager.objectStore.Slice;
 import org.opendaylight.controller.virtualNetworkManager.objectStore.SlicePort;
 import org.opendaylight.controller.virtualNetworkManager.objectStore.SliceSwitch;
@@ -24,6 +25,7 @@ public class SliceManager implements InternalModule{
 	private final String broadcast_address = "100.10.0.1";
 	/* Statically defined wait time should be changed */
 	private final long timeOut = 1000;
+	private final int timeWait = 10;
 
 	/* Internal Project Globals */
 	private ServicePojo services = null;
@@ -97,7 +99,7 @@ public class SliceManager implements InternalModule{
 			return false;
 		}
 
-		/* Get any pre-configured switch in SliceTree (Could be created when Agent gets added)*/
+		/* Get any raw switch in SliceTree (Could be created when Agent gets added)*/
 		Switch rawSwth = sliceTree.getSwitch(dataPathId);
 		if(rawSwth != null){
 			rawSwth.setName(name);
@@ -127,7 +129,8 @@ public class SliceManager implements InternalModule{
 
 		OverlayNetworkManager overlayNetworkManager = (OverlayNetworkManager)modules.get(Module.OverlayNetworkManager.toString());
 		FlowManager flowManager = (FlowManager)modules.get(Module.FlowManager.toString());
-		TopoPort tPort = null;
+		TopoPort overlayPort = null;
+		TopoPort hostPort = null;
 
 		/* Get slice to Slice Tree */
 		Slice slice = sliceTree.getSlice(sliceId);
@@ -150,7 +153,7 @@ public class SliceManager implements InternalModule{
 			return false;
 		}
 
-		/* Get agent Uri */
+		/* Get agent URI */
 		Switch rawSwth = sliceTree.getSwitch(dataPathId);
 		if(rawSwth == null){
 			logger.error("Raw switch not found for Switch with Datapath ID: " + dataPathId);
@@ -168,12 +171,32 @@ public class SliceManager implements InternalModule{
 
 		/* Add port to overlay network */
 		if(!overlayNetworkManager.addPortToNetwork(sliceId, broadcast_address, agent.getAgentUri())){
-			logger.error("Port add to overlay network failed");
+			logger.error("Port add to overlay network failed !");
 			return false;
 		}
 
-		/* wait for Port to be appeared */
-		tPort = waitForPort(sliceId, dataPathId);
+		/* wait for overlay Port to be appeared in topo tree*/
+		overlayPort = waitForPort(sliceId, dataPathId);
+		if(overlayPort == null){
+			logger.error("No overlay port of name :{} appeared in the TopoTree !", generatePortName(sliceId));
+			return false;
+		}
+
+		/* check if host port info is present in Topology Tree */
+		TopoSwitch topoSwth = topoTree.getSwitch(dataPathId);
+		if(topoSwth == null){
+			logger.error("No switch of datapath :{} is present in the TopoTree !", dataPathId);
+			return false;
+		}
+		hostPort = topoSwth.getPort(MAC);
+		if(hostPort == null){
+			logger.error("No Port of MAC :{} is present in the TopoTree !", MAC);
+			return false; /*XXX*/
+		}
+
+		/* Set port type as HostSwitch */
+		hostPort.setType(PortType.Host);
+
 		return true;
 	}
 
@@ -185,12 +208,13 @@ public class SliceManager implements InternalModule{
 		/* Check if Switch with dataPath already exist */
 		swth = sliceTree.getSwitch(dataPathId);
 		if(swth != null) {
+			logger.info("Adding agent information to switch in Slice Tree !");
 			swth.setAgent(agent);
 			return true;
 		}
 		else {
-			swth = new Switch(dataPathId, null, null);
-			swth.setAgent(agent);
+			logger.info("Switch information could not be found in Slice Tree: Adding Raw Switch !");
+			sliceTree.addSwitch(dataPathId, null, null);
 			return true;
 		}
 	}
@@ -203,12 +227,13 @@ public class SliceManager implements InternalModule{
 	private TopoPort waitForPort(int sliceId, String dataPathId) {
 
 		TopoSwitch swth = topoTree.getSwitch(dataPathId);
+		int i = 0;
 		if(swth == null){
 			logger.error("Switch of Datapath ID (" + dataPathId + ") information not found in Topology Tree <switch might not be connected with ODL> ");
 			return null;
 		}
 		else {
-			while(true){
+			while(i < timeWait){
 				ArrayList<TopoPort> ports = swth.getAllPorts();
 				for(TopoPort port : ports){
 					String portname = generatePortName(sliceId);
@@ -222,7 +247,10 @@ public class SliceManager implements InternalModule{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				i++;
 			}
+			logger.error("Overlay port didn't appeared in Topology Tree after " + timeWait + " sec. !");
+			return null;
 		}
 	}
 

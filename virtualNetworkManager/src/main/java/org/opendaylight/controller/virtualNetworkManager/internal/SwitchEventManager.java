@@ -9,6 +9,7 @@ import org.opendaylight.controller.sal.core.Node;
 import org.opendaylight.controller.sal.core.NodeConnector;
 import org.opendaylight.controller.sal.core.Property;
 import org.opendaylight.controller.sal.core.UpdateType;
+import org.opendaylight.controller.virtualNetworkManager.objectStore.PortType;
 import org.opendaylight.controller.virtualNetworkManager.objectStore.TopoPort;
 import org.opendaylight.controller.virtualNetworkManager.objectStore.TopoSwitch;
 import org.opendaylight.controller.virtualNetworkManager.objectStore.TopologyTree;
@@ -274,12 +275,23 @@ public class SwitchEventManager implements InternalModule{
 				logger.warn("Port is already attached to switch, resetting details!"); /*XXX */
 				port.setNodeConnector(nodeConnector);
 				port.setName(portName);
-				port.setType(null);
-				return false;
+				if(portName.toLowerCase().contains("vxlan")){
+					port.setType(PortType.Overlay);
+				}
+				else {
+					//port.setType(null);
+				}
+				return true;
 			}
 		}
 		port = swth.addPort(portMac, nodeConnector, null);
 		port.setName(portName);
+		if(portName.toLowerCase().contains("vxlan")){
+			port.setType(PortType.Overlay);
+		}
+		else {
+			port.setType(null);
+		}
 		return true;
 	}
 
